@@ -92,14 +92,14 @@ def small(im, factor=12):
 
 # noinspection PyShadowingNames
 def binarize_as_array(im, threshold=None, skew=1):
-    """Takes a PIL image in 'L' mode and changes each pixel value to False (black) or True (white) over the :threshold:
+    """Takes a PIL image and changes each pixel value to False (black) or True (white) over the :threshold:
     :image: PIL image object
     :threshold: a value over which to binarize. If not specified, set automatically with
     specified skimage thresholding method or as the middle value between min and max for entire image
     adjusted by :skew: if needed
     :returns: a PIL image object in binary mode ('1')
     """
-    array = np.asarray(im).copy()
+    array = np.asarray(im if im.mode == 'L' else im.convert('L')).copy()
     print(f' - thresholding method: {threshold}', end=', ')
     if not threshold:
         threshold = int((int(np.min(array)) + int(np.max(array))) / 2 * skew)  # calculating the base threshold
@@ -108,7 +108,7 @@ def binarize_as_array(im, threshold=None, skew=1):
     elif threshold == 'otsu':
         threshold = threshold_otsu(array)
     print(f'threshold set to {threshold}')
-    array = array > int(threshold)
+    array = array > threshold
     return Image.fromarray(array)  # .convert('1', dither=0)
 
 
@@ -318,7 +318,7 @@ def deskew(im, echo=False):
     trial = im.crop((int(im.width * 0.1), int(im.height * 0.1),
                      int(im.width * 0.9), int(im.height * 0.9)))
     if trial.mode != '1':
-        trial = binarize_as_array(trial if trial.mode == 'L' else trial.convert('L'))
+        trial = binarize_as_array(trial)
         trial.save('pages/tmp/' + 'trial.png')
     if max(trial.size) > 800:
         trial = small(trial, factor=(max(im.size) // 800)).convert('1', dither=0)
@@ -458,18 +458,17 @@ class Preprocessor:
         self.data = pd.DataFrame()
         self.block_boxes = {}
 
-    def get_image_data(self, lang='tha', psm=3, mode=None, thresh='otsu'):
+    def get_image_data(self, lang='tha', psm=3, mode=None, thresh=None):
         im = self.im.copy()
         if mode == 'L':
             im = im.convert('L')
         if mode == '1':
-            im = binarize_as_array(im.convert('L'), thresh)
+            im = binarize_as_array(im, thresh)
         self.data = pd.DataFrame(pytesseract.image_to_data(im,
                                                            lang=lang, config=f'--psm {psm}',
                                                            output_type='data.frame'))
-        # self.data.dropna(inplace=True)
 
-    def find_all_blocks(self, lang='tha', psm=3, mode=None, thresh='otsu'):
+    def find_all_blocks(self, lang='tha', psm=3, mode=None, thresh=None):
         self.block_boxes.clear()
         self.get_image_data(lang, psm, mode, thresh)
         data = self.data
@@ -477,11 +476,11 @@ class Preprocessor:
         for i, row in blocks.iterrows():
             self.block_boxes[row.block_num] = row.left, row.top, row.left + row.width, row.top + row.height
 
-    def draw_blocks(self):
+    def draw_blocks(self, width=1, color='blue'):
         boxed = self.im.copy()
         for box in self.block_boxes.values():
             draw = ImageDraw.Draw(boxed)
-            draw.rectangle(box, width=1, outline='blue')
+            draw.rectangle(box, width=width, outline=color)
         return boxed
 
 
