@@ -102,7 +102,7 @@ def binarize_as_array(im, threshold=None, skew=1):
     array = np.asarray(im).copy()
     print(f' - thresholding method: {threshold}', end=', ')
     if not threshold:
-        threshold = int((int(np.min(array)) + int(np.max(array))) / (2 * skew))  # calculating the base threshold
+        threshold = int((int(np.min(array)) + int(np.max(array))) / 2 * skew)  # calculating the base threshold
     elif threshold == 'min':
         threshold = threshold_minimum(array)
     elif threshold == 'otsu':
@@ -318,8 +318,8 @@ def deskew(im, echo=False):
     trial = im.crop((int(im.width * 0.1), int(im.height * 0.1),
                      int(im.width * 0.9), int(im.height * 0.9)))
     if trial.mode != '1':
-        trial = binarize_as_array(trial if trial.mode == 'L' else trial.convert('L'), 'otsu')
-        trial.show()
+        trial = binarize_as_array(trial if trial.mode == 'L' else trial.convert('L'))
+        trial.save('pages/tmp/' + 'trial.png')
     if max(trial.size) > 800:
         trial = small(trial, factor=(max(im.size) // 800)).convert('1', dither=0)
     print(f' - reduced to {trial.size}')
@@ -456,38 +456,30 @@ class Preprocessor:
     def __init__(self, pil_image):
         self.im = pil_image
         self.data = pd.DataFrame()
-        self.blocks = {}
+        self.block_boxes = {}
 
     def get_image_data(self, lang='tha', psm=3, mode=None, thresh='otsu'):
         im = self.im.copy()
         if mode == 'L':
             im = im.convert('L')
         if mode == '1':
-            im = binarize_as_array(im, thresh)
+            im = binarize_as_array(im.convert('L'), thresh)
         self.data = pd.DataFrame(pytesseract.image_to_data(im,
                                                            lang=lang, config=f'--psm {psm}',
                                                            output_type='data.frame'))
-        self.data.dropna(inplace=True)
+        # self.data.dropna(inplace=True)
 
-    def find_block_boundaries(self, block_num):
+    def find_all_blocks(self, lang='tha', psm=3, mode=None, thresh='otsu'):
+        self.block_boxes.clear()
+        self.get_image_data(lang, psm, mode, thresh)
         data = self.data
-        block = pd.DataFrame(data[data.block_num == block_num])
-        last_line = block[block.line_num == block.line_num.max()]
-        left = block.left.min()
-        top = block.top.min()
-        right = (block.left + block.width).max()
-        bottom = last_line.top.min() + last_line.height.max()
-        self.blocks[block_num] = left, top, right, bottom
-
-    def find_all_blocks(self, lang='tha', psm=3):
-        self.blocks.clear()
-        self.get_image_data(lang, psm)
-        for block_number in self.data.block_num.unique():
-            self.find_block_boundaries(block_number)
+        blocks = data[data.text.isna() & (data.level == 2)]
+        for i, row in blocks.iterrows():
+            self.block_boxes[row.block_num] = row.left, row.top, row.left + row.width, row.top + row.height
 
     def draw_blocks(self):
         boxed = self.im.copy()
-        for box in self.blocks.values():
+        for box in self.block_boxes.values():
             draw = ImageDraw.Draw(boxed)
             draw.rectangle(box, width=1, outline='blue')
         return boxed
