@@ -6,6 +6,7 @@ import os
 from PIL import Image, ImageDraw, ImageOps
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from skimage.filters import *
 import pytesseract
 
@@ -91,7 +92,7 @@ def small(im, factor=12):
 
 
 # noinspection PyShadowingNames
-def binarize_as_array(im, threshold=None, skew=1):
+def binarize_as_array(im, threshold=None, skew=1, echo=False):
     """Takes a PIL image and changes each pixel value to False (black) or True (white) over the :threshold:
     :image: PIL image object
     :threshold: a value over which to binarize. If not specified, set automatically with
@@ -100,15 +101,19 @@ def binarize_as_array(im, threshold=None, skew=1):
     :returns: a PIL image object in binary mode ('1')
     """
     array = np.asarray(im if im.mode == 'L' else im.convert('L')).copy()
-    print(f' - thresholding method: {threshold}', end=', ')
+    if echo:
+        print(f' - thresholding method: {threshold}', end=', ')
     if not threshold:
-        threshold = int((int(np.min(array)) + int(np.max(array))) / 2 * skew)  # calculating the base threshold
+        threshold = int((np.min(array) + np.max(array)) / 2 * skew)  # calculating the base threshold
     elif threshold == 'min':
         threshold = threshold_minimum(array)
     elif threshold == 'otsu':
         threshold = threshold_otsu(array)
-    print(f'threshold set to {threshold}')
+    if echo:
+        print(f'threshold set to {threshold}')
     array = array > threshold
+    # array[array >= threshold] = 255
+    # array[array < threshold] = 0
     return Image.fromarray(array)  # .convert('1', dither=0)
 
 
@@ -482,6 +487,36 @@ class Preprocessor:
             draw = ImageDraw.Draw(boxed)
             draw.rectangle(box, width=width, outline=color)
         return boxed
+
+    def show_block_variants(self, line_width=2, color='navy', figsize=(9, 13)):
+        """builds 3x3 grid of block discovery results overlain on original image
+        for the three psm values and three image modes"""
+        fig, axs = plt.subplots(3, 3, figsize=figsize, facecolor='whitesmoke',
+                                layout='tight', sharex='col', sharey='row')
+        fig.suptitle('The effect of psm value and image mode on text block discovery by Tesseract\n')
+
+        modes = np.array((None, 'L', '1') * 3).reshape(3, 3).T
+        psms = np.array((1, 3, 6) * 3).reshape(3, 3)
+        for ax, mode, psm in zip(axs.flatten(), modes.flatten(), psms.flatten()):
+            ax.spines.top.set_visible(False)
+            ax.spines.left.set_visible(False)
+            ax.spines.right.set_visible(False)
+            ax.spines.bottom.set_visible(False)
+            ax.tick_params(labelsize='x-small')
+            self.find_all_blocks(mode=mode, psm=psm)
+            ax.imshow(self.draw_blocks(width=line_width, color=color))
+            if mode is None:
+                ax.set_title(f'psm {psm}')
+                if psm == 1:
+                    ax.set_ylabel('RGB')
+            if mode == 'L' and psm == 1:
+                ax.set_ylabel('Grayscale')
+            if mode == '1':
+                ax.set_xlabel(f'psm {psm}')
+                if psm == 1:
+                    ax.set_ylabel('Binary')
+
+        plt.show()
 
 
 class Image2Text:
