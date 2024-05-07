@@ -1,0 +1,5 @@
+https://tesseract-ocr.github.io/tessdoc/ImproveQuality
+https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_thresholding.html
+https://github.com/UB-Mannheim/tesseract/wiki
+https://nanonets.com/blog/ocr-with-tesseract/
+https://github.com/madmaze/pytesseract

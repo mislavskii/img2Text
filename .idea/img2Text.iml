@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/imgZip2Text/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/imgZip2Text/.ipynb_checkpoints" />
+      <excludeFolder url="file://$MODULE_DIR$/imgZip2Text/137-139" />
+      <excludeFolder url="file://$MODULE_DIR$/imgZip2Text/backup" />
+      <excludeFolder url="file://$MODULE_DIR$/imgZip2Text/gcp" />
+      <excludeFolder url="file://$MODULE_DIR$/imgZip2Text/resources" />
+      <excludeFolder url="file://$MODULE_DIR$/imgZip2Text/smartbin" />
+      <excludeFolder url="file://$MODULE_DIR$/sipSongPanNa/pages" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
