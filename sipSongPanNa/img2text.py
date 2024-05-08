@@ -463,8 +463,9 @@ class Preprocessor:
         self.data = pd.DataFrame()
         self.block_boxes = {}
 
-    def get_image_data(self, lang='tha', psm=3, mode=None, thresh=None):
+    def get_image_data(self, lang='tha', psm=3, mode='RGB', thresh=None):
         im = self.im.copy()
+        self.block_boxes['params'] = dict(lang=lang, psm=psm, mode=mode, thresh=thresh)
         if mode == 'L':
             im = im.convert('L')
         if mode == '1':
@@ -473,17 +474,26 @@ class Preprocessor:
                                                            lang=lang, config=f'--psm {psm}',
                                                            output_type='data.frame'))
 
-    def find_all_blocks(self, lang='tha', psm=3, mode=None, thresh=None):
+    def find_all_blocks(self, lang='tha', psm=3, mode='RGB', thresh=None):
         self.block_boxes.clear()
+        self.block_boxes['boxes'] = {}
         self.get_image_data(lang, psm, mode, thresh)
         data = self.data
         blocks = data[data.text.isna() & (data.level == 2)]
+        boxes = self.block_boxes['boxes']
         for i, row in blocks.iterrows():
-            self.block_boxes[row.block_num] = row.left, row.top, row.left + row.width, row.top + row.height
+            boxes[row.block_num] = row.left, row.top, row.left + row.width, row.top + row.height
 
-    def draw_blocks(self, width=1, color='blue'):
+    def draw_blocks(self, width=1, color='blue') -> Image:
+        """
+        :param width: block outline width in px
+        :param color: block outline color
+        :return: PIL image showing discovered text blocks as defined in `block-boxes`
+        drawn onto original image
+        """
         boxed = self.im.copy()
-        for box in self.block_boxes.values():
+        boxes = self.block_boxes['boxes']
+        for box in boxes.values():
             draw = ImageDraw.Draw(boxed)
             draw.rectangle(box, width=width, outline=color)
         return boxed
