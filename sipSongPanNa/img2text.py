@@ -498,7 +498,7 @@ class Preprocessor:
             draw.rectangle(box, width=width, outline=color)
         return boxed
 
-    def show_block_variants(self, line_width=2, color='navy', figsize=(9, 13)):
+    def build_sampling_sheet(self, line_width=2, color='navy', figsize=(9, 13)):
         """builds 3x3 grid of block discovery results overlain on original image
         for the three psm values and three image modes"""
         fig, axs = plt.subplots(3, 3, figsize=figsize, facecolor='whitesmoke',
@@ -526,6 +526,7 @@ class Preprocessor:
                 if psm == 1:
                     ax.set_ylabel('Binary')
 
+        plt.savefig('pages/tmp/sampling_sheet.png')
         plt.show()
 
 
