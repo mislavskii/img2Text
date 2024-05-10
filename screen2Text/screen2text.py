@@ -6,8 +6,8 @@ from IPython.display import display
 from IPython.display import HTML
 import threading
 from datetime import datetime as dt
-
-from pythainlp import spell
+from pythainlp import spell, correct
+import pandas as pd
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -46,13 +46,12 @@ class ClipImg2Text:
         return sorted(freqs.items(), key=lambda item: item[1], reverse=True)
 
     def __init__(self):
+        self.suggestions = []
         self.im = None
         self.bim = None
         self.out_texts = {}
         self.bims = {}
         self.validated_words = {}
-        self.best_candidates = []
-        self.spell_guesses = []
 
     def grab(self):
         self.bim = None
@@ -98,7 +97,7 @@ class ClipImg2Text:
                 # texts[code] = e.__str__()
                 continue
 
-    def recognize_bin(self, skew=1, lang='tha', config='--psm 7'):
+    def recognize_bin(self, skew=1.0, lang='tha', config='--psm 7'):
         return pytesseract.image_to_string(self.binarize(skew), config=config, lang=lang).strip()
 
     def fan_recognize_bin(self, lang='tha'):
@@ -109,7 +108,8 @@ class ClipImg2Text:
 
     def fan_recognize(self, lang, psm):
         """For given psm value, recognizing original image and binarized in a range of threshold skews
-        from self.bims, which will have to be already prepared"""
+        from self.bims, which will have to be already prepared to avoid repeated binarization
+        in concurrent recognizing"""
         self.out_texts[psm] = self.recognize_original(lang=lang, config=f'--psm {psm}')
         for skew, image in self.bims.items():
             key = psm * 1000 + skew
@@ -139,7 +139,6 @@ class ClipImg2Text:
     def validate_words(self):
         """
         checks recognition results gathered in out_texts against corpus.
-        :return: list of tuples mapping corpus-validated results to their relative frequencies
         """
         self.validated_words.clear()
         with open(self.corpus_path, encoding='utf-8') as corpus:
@@ -149,22 +148,23 @@ class ClipImg2Text:
                     for entry in lexicon:
                         if text in entry:
                             self.validated_words[key] = text
-        if self.validated_words:
-            return self.get_freqs(self.validated_words.values())
-        self.generate_candidates()
-        return []
 
-    def generate_candidates(self):
-        suggestion_cap = 3
-        self.best_candidates.clear()
+    def generate_suggestions(self):
+        self.validate_words()
+        candidate_cap = 3
         out_text_freqs = self.get_freqs(self.out_texts.values())
-        self.best_candidates = out_text_freqs[:suggestion_cap
-                               ] if len(out_text_freqs) > suggestion_cap else out_text_freqs
-        corrections = []
-        for term in [item[0] for item in self.best_candidates]:
-            corrected = spell(term)
-            corrections.extend(corrected)
-        self.spell_guesses = self.get_freqs(corrections)
+        top_texts = out_text_freqs[:candidate_cap
+                               ] if len(out_text_freqs) > candidate_cap else out_text_freqs
+        self.suggestions = self.get_freqs(self.validated_words.values())
+        floor = 0 if not self.suggestions else sum([item[1] for item in self.suggestions]) / len(self.suggestions)
+        for candidate in top_texts:
+            if candidate[0] not in self.validated_words.values() and candidate[1] > floor:
+                self.suggestions.append(candidate)
+                corrected = correct(candidate[0])
+                if corrected not in self.validated_words.values() and (corrected, -1) not in self.suggestions:
+                    self.suggestions.append((corrected, -1))
+        self.suggestions.sort(key=lambda item: item[1], reverse=True)
+
 
     def inspect_results(self):
         if not self.im:
@@ -234,31 +234,12 @@ class DictLookup(ClipImg2Text):
         start = dt.now()
         self.threads_recognize(lang, kind)
         print(f'Done in {dt.now() - start}')
-        self.suggestions = self.validate_words()
+        self.generate_suggestions()
         if not self.suggestions:
-            if not self.spell_guesses:
-                print('No meaningful recognition results could be obtained from the image')
-                return
-            top = self.spell_guesses[0]
-            best_guess = f'The best spelling-adjusted guess is * {top[0]} * rated {top[1]}'
-            others = '\nOthers:\n'
-            for i in range(1, len(self.spell_guesses)):
-                other = self.spell_guesses[i]
-                others += f'{i} - {other[0]}\t'
-            word = input(
-                f'''No high-confidence recognition results.\n{best_guess}{others}\n
-                Enter to proceed with top-rated suggestion or number for other or any desired word:'''
-            )
-            if not word:
-                self.lookup(top[0])
-            else:
-                try:
-                    self.lookup(self.spell_guesses[int(word)][0])
-                except:
-                    self.lookup(word)
+            print('No meaningful recognition results could be obtained from the image')
             return
         top = self.suggestions[0]
-        best_guess = f'The best guess is "{top[0]}" rated {top[1]} out of {len(self.validated_words)}\n'
+        best_guess = f'The best guess is "{top[0]}" rated {top[1]}\n'
         others = 'Others:\n'
         for i in range(1, len(self.suggestions)):
             other = self.suggestions[i]
