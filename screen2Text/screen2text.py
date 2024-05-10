@@ -1,4 +1,3 @@
-from PIL import Image
 from PIL import ImageGrab
 import pytesseract
 import requests as rq
@@ -7,6 +6,8 @@ from IPython.display import display
 from IPython.display import HTML
 import threading
 from datetime import datetime as dt
+
+from pythainlp import spell
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -30,11 +31,28 @@ class ClipImg2Text:
                    [entry.strip().split('    ') for entry in config_codes.split('\n')]}
     corpus_path = r'F:\User\Learn\ไทยศึกษา\Linguistics\lexitron_thai.txt'
 
+    @staticmethod
+    def get_freqs(strings):
+        """
+        takes a collection of :strings: and returns a list of tuples mapping strings to their relative frequencies,
+        sorted in descending order
+        """
+        freqs = {}
+        for word in strings:
+            freqs[word] = freqs.get(word, 0) + 1
+        total = sum(freqs.values())
+        for key, val in freqs.items():
+            freqs[key] = round(val / total, 2)
+        return sorted(freqs.items(), key=lambda item: item[1], reverse=True)
+
     def __init__(self):
-        self.bim = None
         self.im = None
+        self.bim = None
         self.out_texts = {}
+        self.bims = {}
         self.validated_words = {}
+        self.best_candidates = []
+        self.spell_guesses = []
 
     def grab(self):
         self.bim = None
@@ -48,7 +66,7 @@ class ClipImg2Text:
     def load_image(self, pil_image):
         self.im = pil_image
 
-    def binarize(self, skew=1):
+    def binarize(self, skew=1.0):
         im = self.im.copy().convert("L")
         lightness = len(im.getdata()) / sum(im.getdata())
         threshold = sum(im.getextrema()) / 2 * skew
@@ -119,6 +137,10 @@ class ClipImg2Text:
             thread.join()
 
     def validate_words(self):
+        """
+        checks recognition results gathered in out_texts against corpus.
+        :return: list of tuples mapping corpus-validated results to their relative frequencies
+        """
         self.validated_words.clear()
         with open(self.corpus_path, encoding='utf-8') as corpus:
             lexicon = corpus.readlines()
@@ -127,13 +149,22 @@ class ClipImg2Text:
                     for entry in lexicon:
                         if text in entry:
                             self.validated_words[key] = text
-        freqs = {}
-        for word in self.validated_words.values():
-            freqs[word] = freqs.get(word, 0) + 1
-        total = sum(freqs.values())
-        for key, val in freqs.items():
-            freqs[key] = round(val / total, 2)
-        return dict(sorted(freqs.items(), key=lambda item: item[1], reverse=True))
+        if self.validated_words:
+            return self.get_freqs(self.validated_words.values())
+        self.generate_candidates()
+        return []
+
+    def generate_candidates(self):
+        suggestion_cap = 3
+        self.best_candidates.clear()
+        out_text_freqs = self.get_freqs(self.out_texts.values())
+        self.best_candidates = out_text_freqs[:suggestion_cap
+                               ] if len(out_text_freqs) > suggestion_cap else out_text_freqs
+        corrections = []
+        for term in [item[0] for item in self.best_candidates]:
+            corrected = spell(term)
+            corrections.extend(corrected)
+        self.spell_guesses = self.get_freqs(corrections)
 
     def inspect_results(self):
         if not self.im:
@@ -159,7 +190,7 @@ class DictLookup(ClipImg2Text):
 
     def __init__(self):
         super().__init__()
-        self.suggestions = None
+        self.suggestions = {}
         # self.executor = ClipImg2Text()
 
     def lookup(self, text):
@@ -169,7 +200,7 @@ class DictLookup(ClipImg2Text):
             try:
                 response = rq.get(self.dic_url + text, timeout=15)
                 break
-            except ConnectionError:
+            except:
                 attempts -= 1
                 continue
         if not response or response.status_code != 200:
@@ -195,35 +226,55 @@ class DictLookup(ClipImg2Text):
 
         display(HTML(style + content))
 
-    def recognize_and_lookup(self):
+    def recognize_and_lookup(self, lang='tha', kind=None):
         self.grab()
         if not self.im:
             return
         display(self.im)
         start = dt.now()
-        self.threads_recognize('tha')
+        self.threads_recognize(lang, kind)
         print(f'Done in {dt.now() - start}')
-
         self.suggestions = self.validate_words()
-
-        keys = list(self.suggestions.keys())
-        if keys:
-            top = keys[0]
-            best_guess = f'The best guess is "{top}" rated {self.suggestions[top]} out of {len(self.validated_words)}\n'
-            others = 'Others:\n'
-            for i in range(1, len(self.suggestions)):
-                others += f'{i} - {keys[i]} ({self.suggestions[keys[i]]})\t'
+        if not self.suggestions:
+            if not self.spell_guesses:
+                print('No meaningful recognition results could be obtained from the image')
+                return
+            top = self.spell_guesses[0]
+            best_guess = f'The best spelling-adjusted guess is * {top[0]} * rated {top[1]}'
+            others = '\nOthers:\n'
+            for i in range(1, len(self.spell_guesses)):
+                other = self.spell_guesses[i]
+                others += f'{i} - {other[0]}\t'
             word = input(
-                f'''{best_guess}{others}\n
-                Enter to proceed with top-rated suggestion or number for other or any different word:'''
+                f'''No high-confidence recognition results.\n{best_guess}{others}\n
+                Enter to proceed with top-rated suggestion or number for other or any desired word:'''
             )
             if not word:
-                self.lookup(top)
+                self.lookup(top[0])
             else:
                 try:
-                    self.lookup(keys[int(word)])
+                    self.lookup(self.spell_guesses[int(word)][0])
                 except:
                     self.lookup(word)
+            return
+        top = self.suggestions[0]
+        best_guess = f'The best guess is "{top[0]}" rated {top[1]} out of {len(self.validated_words)}\n'
+        others = 'Others:\n'
+        for i in range(1, len(self.suggestions)):
+            other = self.suggestions[i]
+            others += f'{i} - {other[0]} ({other[1]})\t'
+        word = input(
+            f'''{best_guess}{others}\n
+            Enter to proceed with top-rated suggestion or number for other or any desired word:'''
+        )
+        if not word:
+            self.lookup(top[0])
+        else:
+            try:
+                self.lookup(self.suggestions[int(word)][0])
+            except:
+                self.lookup(word)
+        return
 
 
 print('>> screen2text imported.')
