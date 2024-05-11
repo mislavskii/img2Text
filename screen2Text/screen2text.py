@@ -152,24 +152,26 @@ class ClipImg2Text:
     def generate_suggestions(self):
         self.validate_words()
         self.suggestions = self.get_freqs(self.validated_words.values())
+        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item])
         if self.suggestions:
-            enrichment_floor = sum([item[1] for item in self.suggestions]) / len(self.suggestions)
+            leader = self.suggestions[0][0]
+            leader_general_score = {item[0]: item[1] for item in out_text_freqs}[leader]
+            mean_score = sum([item[1] for item in self.suggestions]) / len(self.suggestions)
+            enrichment_floor = min(mean_score, leader_general_score)
             noise_ceiling = self.suggestions[0][1] / 10
             self.suggestions = [item for item in self.suggestions if item[1] > noise_ceiling]
         else:
             enrichment_floor = 0
         candidate_cap = 3
-        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item])
         top_texts = out_text_freqs[:candidate_cap
-                               ] if len(out_text_freqs) > candidate_cap else out_text_freqs
+                    ] if len(out_text_freqs) > candidate_cap else out_text_freqs
         for candidate in top_texts:
             if candidate[0] not in self.validated_words.values() and candidate[1] > enrichment_floor:
                 self.suggestions.append(candidate)
                 corrected = correct(candidate[0])
-                if corrected not in self.validated_words.values() and (corrected, -1) not in self.suggestions:
+                if corrected not in [item[0] for item in self.suggestions]:
                     self.suggestions.append((corrected, -1))
         self.suggestions.sort(key=lambda item: item[1], reverse=True)
-
 
     def inspect_results(self):
         if not self.im:
