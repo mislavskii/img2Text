@@ -151,14 +151,19 @@ class ClipImg2Text:
 
     def generate_suggestions(self):
         self.validate_words()
+        self.suggestions = self.get_freqs(self.validated_words.values())
+        if self.suggestions:
+            enrichment_floor = sum([item[1] for item in self.suggestions]) / len(self.suggestions)
+            noise_ceiling = self.suggestions[0][1] / 10
+            self.suggestions = [item for item in self.suggestions if item[1] > noise_ceiling]
+        else:
+            enrichment_floor = 0
         candidate_cap = 3
         out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item])
         top_texts = out_text_freqs[:candidate_cap
                                ] if len(out_text_freqs) > candidate_cap else out_text_freqs
-        self.suggestions = self.get_freqs(self.validated_words.values())
-        floor = 0 if not self.suggestions else sum([item[1] for item in self.suggestions]) / len(self.suggestions)
         for candidate in top_texts:
-            if candidate[0] not in self.validated_words.values() and candidate[1] > floor:
+            if candidate[0] not in self.validated_words.values() and candidate[1] > enrichment_floor:
                 self.suggestions.append(candidate)
                 corrected = correct(candidate[0])
                 if corrected not in self.validated_words.values() and (corrected, -1) not in self.suggestions:
