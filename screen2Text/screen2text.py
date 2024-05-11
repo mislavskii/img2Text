@@ -152,7 +152,7 @@ class ClipImg2Text:
     def generate_suggestions(self):
         self.validate_words()
         candidate_cap = 3
-        out_text_freqs = self.get_freqs(self.out_texts.values())
+        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item])
         top_texts = out_text_freqs[:candidate_cap
                                ] if len(out_text_freqs) > candidate_cap else out_text_freqs
         self.suggestions = self.get_freqs(self.validated_words.values())
@@ -196,6 +196,7 @@ class DictLookup(ClipImg2Text):
     def lookup(self, text):
         response = None
         attempts = 3
+        print(f'Looking up {text}...')
         while attempts:
             try:
                 response = rq.get(self.dic_url + text, timeout=15)
@@ -211,7 +212,7 @@ class DictLookup(ClipImg2Text):
         headers = soup.find_all('td', attrs={'class': 'search-table-header'})
         tables = soup.find_all('table', attrs={'class': 'search-result-table'})
         style = '''<style>table {width: 60%;} </style>'''
-        content = ''
+        content = f'<h4>Lookup results for "<strong>{text}</strong>"</h4>'
         for header, table in zip(headers, tables):
             text = header.text
             if not ('Subtitles' in text or 'German-Thai:' in text or 'French-Thai:' in text):
