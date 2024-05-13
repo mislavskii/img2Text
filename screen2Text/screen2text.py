@@ -249,10 +249,12 @@ class DictLookup(ClipImg2Text):
         for header, table in zip(headers, tables):
             text = header.text
             if not ('Subtitles' in text or 'German-Thai:' in text or 'French-Thai:' in text):
-                output += f'\n**{header.text}**\n'
-                cells = table.find_all('td')
-                for cell in cells:
-                    output += cell.text + '\n'
+                output += f'\n**{header.text}**\n\n'
+                rows = table.find_all('tr')
+                for row in rows:
+                    output += '- '
+                    for cell in row.find_all('td'):
+                        output += f'{cell.text}\n'
         return output
 
     def recognize_and_lookup(self, lang='tha', kind=None, output='html'):
