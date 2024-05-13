@@ -7,6 +7,7 @@ from IPython.display import HTML
 import threading
 from datetime import datetime as dt
 from pythainlp import spell, correct
+import os
 import pandas as pd
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -52,6 +53,8 @@ class ClipImg2Text:
         self.out_texts = {}
         self.bims = {}
         self.validated_words = {}
+        if not os.path.exists('bims'):
+            os.mkdir('bims')
 
     def grab(self):
         self.bim = None
@@ -152,21 +155,21 @@ class ClipImg2Text:
     def generate_suggestions(self):
         self.validate_words()
         self.suggestions = self.get_freqs(self.validated_words.values())
-        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item])
+        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item and '\n' not in item])
         if self.suggestions:
             leader = self.suggestions[0][0]
             leader_general_score = {item[0]: item[1] for item in out_text_freqs}[leader]
             mean_score = sum([item[1] for item in self.suggestions]) / len(self.suggestions)
             enrichment_floor = min(mean_score, leader_general_score)
-            noise_ceiling = self.suggestions[0][1] / 10
+            noise_ceiling = self.suggestions[0][1] * .04
             self.suggestions = [item for item in self.suggestions if item[1] > noise_ceiling]
         else:
-            enrichment_floor = 0
+            enrichment_floor = 0.01
         candidate_cap = 3
         top_texts = out_text_freqs[:candidate_cap
                     ] if len(out_text_freqs) > candidate_cap else out_text_freqs
         for candidate in top_texts:
-            if candidate[0] not in self.validated_words.values() and candidate[1] > enrichment_floor:
+            if candidate[0] not in [item[0] for item in self.suggestions] and candidate[1] > enrichment_floor:
                 self.suggestions.append(candidate)
                 corrected = correct(candidate[0])
                 if corrected not in [item[0] for item in self.suggestions]:
@@ -197,29 +200,34 @@ class DictLookup(ClipImg2Text):
 
     def __init__(self):
         super().__init__()
-        self.suggestions = {}
-        # self.executor = ClipImg2Text()
+        self.word = None
+        self.soup = None
 
-    def lookup(self, text):
+    def lookup(self, word):
+        self.word = word
         response = None
         attempts = 3
-        print(f'Looking up {text}...')
+        print(f'Looking up {word}... ', end='')
         while attempts:
             try:
-                response = rq.get(self.dic_url + text, timeout=15)
+                response = rq.get(self.dic_url + word, timeout=15)
                 break
             except:
                 attempts -= 1
+                print(' * ', end='')
                 continue
+        print()
         if not response or response.status_code != 200:
             print("Couldn't fetch.")
             return
         response.encoding = 'utf-8'
-        soup = bs(response.text, features="lxml")
-        headers = soup.find_all('td', attrs={'class': 'search-table-header'})
-        tables = soup.find_all('table', attrs={'class': 'search-result-table'})
+        self.soup = bs(response.text, features="lxml")
+
+    def output_html(self):
+        headers = self.soup.find_all('td', attrs={'class': 'search-table-header'})
+        tables = self.soup.find_all('table', attrs={'class': 'search-result-table'})
         style = '''<style>table {width: 60%;} </style>'''
-        content = f'<h4>Lookup results for "<strong>{text}</strong>"</h4>'
+        content = f'<h4>Lookup results for "<strong>{self.word}</strong>"</h4>'
         for header, table in zip(headers, tables):
             text = header.text
             if not ('Subtitles' in text or 'German-Thai:' in text or 'French-Thai:' in text):
@@ -234,7 +242,7 @@ class DictLookup(ClipImg2Text):
 
         display(HTML(style + content))
 
-    def recognize_and_lookup(self, lang='tha', kind=None):
+    def recognize_and_lookup(self, lang='tha', kind=None, output='html'):
         self.grab()
         if not self.im:
             return
@@ -263,7 +271,8 @@ class DictLookup(ClipImg2Text):
                 self.lookup(self.suggestions[int(word)][0])
             except:
                 self.lookup(word)
-        return
+        if output == 'html':
+            self.output_html()
 
 
 print('>> screen2text imported.')
