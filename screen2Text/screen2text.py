@@ -242,6 +242,19 @@ class DictLookup(ClipImg2Text):
 
         display(HTML(style + content))
 
+    def output_markdown(self):
+        headers = self.soup.find_all('td', attrs={'class': 'search-table-header'})
+        tables = self.soup.find_all('table', attrs={'class': 'search-result-table'})
+        output = f'Lookup results for **{self.word}** from [Longdo Dictionary]({self.dic_url + self.word})\n'
+        for header, table in zip(headers, tables):
+            text = header.text
+            if not ('Subtitles' in text or 'German-Thai:' in text or 'French-Thai:' in text):
+                output += f'\n**{header.text}**\n'
+                cells = table.find_all('td')
+                for cell in cells:
+                    output += cell.text + '\n'
+        return output
+
     def recognize_and_lookup(self, lang='tha', kind=None, output='html'):
         self.grab()
         if not self.im:
