@@ -63,42 +63,40 @@ def echo(update: Update, context: CallbackContext) -> None:
                     return
         # This is equivalent to forwarding, without the sender's name
         update.message.copy(update.message.chat_id)
-    elif message.photo:
-        print(f'incoming photo from {message.from_user.full_name} detected by echo handler.')
-        file = context.bot.get_file(message.photo[0].file_id)
-        print(file.file_path)
-        # im = Image.open(file.download())  # this also works but the image is needlessly saved, too
-        r = rq.get(file.file_path)
-        im = Image.open(BytesIO(r.content))
+    elif message.photo or message.document:
+        if message.photo:
+            print(f'incoming photo from {message.from_user.full_name} detected by echo handler.')
+            file = context.bot.get_file(message.photo[0].file_id)
+            print(file.file_path)
+            context.bot.send_message(
+                message.from_user.id,
+                f'Compressed image accepted. Processing...'
+            )
+        elif message.document:
+            print(f'incoming file from {message.from_user.full_name} detected by echo handler.')
+            file = context.bot.get_file(message.document.file_id)
+            print(file.file_path)
+            if file.file_path.endswith('.png'):
+                context.bot.send_message(
+                    message.from_user.id,
+                    'Uncompressed image file accepted. Processing...'
+                )
+            else:
+                context.bot.send_message(
+                    update.message.from_user.id,
+                    'File could not be accepted: unexpected type based on extension.'
+                )
+        suggestions = do_recognize(file)
+        results_dict[message.from_user.id] = suggestions
+        choices = 'Choose suggestion number to look up:\n'
+        for i in range(0, len(suggestions)):
+            option = suggestions[i]
+            choices += f'{i} : {option[0]} ({option[1]})\n'
         context.bot.send_message(
             message.from_user.id,
-            f'Compressed {im.mode} image sized {im.width}x{im.height} accepted.'
+            choices
         )
-    elif message.document:
-        print(f'incoming file from {message.from_user.full_name} detected by echo handler.')
-        file = context.bot.get_file(message.document.file_id)
-        print(file.file_path)
-        if file.file_path.endswith('.png'):
-            context.bot.send_message(
-                message.from_user.id,
-                'Image file accepted. Processing...'
-            )
-            suggestions = do_recognize(file)
-            results_dict[message.from_user.id] = suggestions
-            choices = 'Choose suggestion number to look up:\n'
-            for i in range(0, len(suggestions)):
-                option = suggestions[i]
-                choices += f'{i} : {option[0]} ({option[1]})\n'
-            context.bot.send_message(
-                message.from_user.id,
-                choices
-            )
-            print(results_dict[message.from_user.id])
-        else:
-            context.bot.send_message(
-                update.message.from_user.id,
-                'File could not be accepted: unexpected type based on extension.'
-            )
+        print(results_dict[message.from_user.id])
     else:
         context.bot.send_message(
             update.message.from_user.id,
