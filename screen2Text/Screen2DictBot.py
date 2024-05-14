@@ -1,4 +1,3 @@
-
 import requests as rq
 import logging
 from telegram import Update, ForceReply, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
@@ -88,9 +87,9 @@ def echo(update: Update, context: CallbackContext) -> None:
             )
             x = dlp()
             x.load_image(im)
-            x.threads_recognize(lang='tha')
+            x.threads_recognize(lang='tha', kind='word')
             x.generate_suggestions()
-            print(x.suggestions)
+            # print(x.suggestions)
             results_dict[message.from_user.id] = x.suggestions
             options = 'Choose suggestion number to look up:\n'
             for i in range(0, len(x.suggestions)):

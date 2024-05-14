@@ -132,7 +132,9 @@ class ClipImg2Text:
         if kind == 'block':
             psms = (1, 3, 4, 6, 11, 12, 13)
         if kind == 'line':
-            psms = (1, 3, 4, 6, 7, 11, 12, 13)
+            psms = (1, 3, 7, 11, 12, 13)
+        if kind == 'word':
+            psms = (1, 3, 7, 8, 11, 12, 13)
         threads = [threading.Thread(target=self.fan_recognize, args=(lang, psm), name=f't_{psm}') for psm in psms]
         for thread in threads:
             thread.start()
@@ -254,7 +256,7 @@ class DictLookup(ClipImg2Text):
                 for row in rows:
                     output += '- '
                     for cell in row.find_all('td'):
-                        output += f'{cell.text}\n'
+                        output += f'{cell.text.replace("<i>", "_").replace("</i>", "_")}\n'
         return output
 
     def recognize_and_lookup(self, lang='tha', kind=None, output='html'):
