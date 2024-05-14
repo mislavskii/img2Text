@@ -178,7 +178,7 @@ class ClipImg2Text:
                     self.suggestions.append((corrected, -1))
         self.suggestions.sort(key=lambda item: item[1], reverse=True)
 
-    def inspect_results(self):
+    def inspect_results(self):  # TODO: Adapt for blocks
         if not self.im:
             return
         display(self.im)

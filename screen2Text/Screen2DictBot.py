@@ -1,11 +1,10 @@
-import requests as rq
 import logging
 from telegram import Update, ForceReply, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 from PIL import Image
 from io import BytesIO
 
-from screen2text import DictLookup as dlp
+from bot_utils import *
 
 from bot_config import token
 
@@ -80,25 +79,19 @@ def echo(update: Update, context: CallbackContext) -> None:
         file = context.bot.get_file(message.document.file_id)
         print(file.file_path)
         if file.file_path.endswith('.png'):
-            r = rq.get(file.file_path)
-            im = Image.open(BytesIO(r.content))
             context.bot.send_message(
                 message.from_user.id,
-                f'{im.mode} file sized {im.width}x{im.height} accepted.'
+                'Image file accepted. Processing...'
             )
-            x = dlp()
-            x.load_image(im)
-            x.threads_recognize(lang='tha', kind='word')
-            x.generate_suggestions()
-            # print(x.suggestions)
-            results_dict[message.from_user.id] = x.suggestions
-            options = 'Choose suggestion number to look up:\n'
-            for i in range(0, len(x.suggestions)):
-                option = x.suggestions[i]
-                options += f'{i} : {option[0]} ({option[1]})\n'
+            suggestions = do_recognize(file)
+            results_dict[message.from_user.id] = suggestions
+            choices = 'Choose suggestion number to look up:\n'
+            for i in range(0, len(suggestions)):
+                option = suggestions[i]
+                choices += f'{i} : {option[0]} ({option[1]})\n'
             context.bot.send_message(
                 message.from_user.id,
-                options
+                choices
             )
             print(results_dict[message.from_user.id])
         else:
