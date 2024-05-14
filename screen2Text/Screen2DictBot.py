@@ -49,18 +49,19 @@ def echo(update: Update, context: CallbackContext) -> None:
     if message.text:
         print(f'{message.from_user.first_name} wrote: {message.text}')
         if message.text.isdigit():
-            their_result = results_dict[message.from_user.id]
-            word = their_result[int(message.text)][0]
-            x = dlp()
-            x.lookup(word)
-            context.bot.send_message(
-                message.from_user.id,
-                # f"Sea monkeys didn't manage to concoct any meaningful output for {word} yet, but they are trying real "
-                # f"hard..."
-                x.output_markdown(),
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
+            if message.from_user.id in results_dict.keys():
+                their_results = results_dict[message.from_user.id]
+                result_index = int(message.text)
+                if result_index < len(their_results):
+                    word = their_results[result_index][0]
+                    x = dlp()
+                    x.lookup(word)
+                    context.bot.send_message(
+                        message.from_user.id,
+                        x.output_markdown(),
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    return
         # This is equivalent to forwarding, without the sender's name
         update.message.copy(update.message.chat_id)
     elif message.photo:
