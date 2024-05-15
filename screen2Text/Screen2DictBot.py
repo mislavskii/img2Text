@@ -58,6 +58,10 @@ def service(update: Update, context: CallbackContext) -> None:
         if message.text.lower().startswith('lookup') and len(message.text.split()) == 2:
             word = message.text.split()[-1]
         if word:
+            context.bot.send_message(
+                message.from_user.id,
+                f'looking up {word} ...'
+            )
             x = dlp()
             x.lookup(word)
             output = x.output_markdown()
