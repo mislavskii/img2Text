@@ -33,11 +33,14 @@ SECOND_MENU_MARKUP = InlineKeyboardMarkup([
 def start(update: Update, context: CallbackContext) -> None:
     context.bot.send_message(
         update.message.from_user.id,
-        'Hello! This is an experimental bot. It is learning to handle text messages, photos and files'
+        'Hello! To start using the service, please send a tightly cropped image of a word. '
+        'The current implementation is built around Thai language drawing on Thai-based '
+        '[Longdo Dictionary](https://dict.longdo.com/index.php).',
+        parse_mode=ParseMode.MARKDOWN
     )
 
 
-def echo(update: Update, context: CallbackContext) -> None:
+def service(update: Update, context: CallbackContext) -> None:
     """
     This function is added to the dispatcher as a general handler for messages coming from the Bot API
     """
@@ -45,7 +48,7 @@ def echo(update: Update, context: CallbackContext) -> None:
     message = update.message
     if message.text:
         print(f'{message.from_user.first_name} wrote: {message.text}')
-        word = None
+        word = ''
         if message.text.isdigit():
             if message.from_user.id in results_dict.keys():
                 their_results = results_dict[message.from_user.id]
@@ -57,20 +60,24 @@ def echo(update: Update, context: CallbackContext) -> None:
         if word:
             x = dlp()
             x.lookup(word)
+            output = x.output_markdown()
             context.bot.send_message(
                 message.from_user.id,
-                x.output_markdown(),
+                output if len(output) < 4096 else output[:4004] + ' ...\nclick the link below for more...',
                 parse_mode=ParseMode.MARKDOWN
             )
             return
         # This is equivalent to forwarding, without the sender's name
-        update.message.copy(update.message.chat_id)
+        context.bot.send_message(
+            message.from_user.id,
+            'Please submit a tightly cropped image of a word, enter suggestion number if known, '
+            'or enter a word preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
+        )
     elif message.photo or message.document:
         file = None
         if message.photo:
             print(f'incoming photo from {message.from_user.full_name} detected by echo handler.')
             file = context.bot.get_file(message.photo[0].file_id)
-            print(file.file_path)
             context.bot.send_message(
                 message.from_user.id,
                 f'Compressed image accepted. Processing...'
@@ -78,7 +85,6 @@ def echo(update: Update, context: CallbackContext) -> None:
         elif message.document:
             print(f'incoming file from {message.from_user.full_name} detected by echo handler.')
             file = context.bot.get_file(message.document.file_id)
-            print(file.file_path)
             if file.file_path.endswith('.png'):
                 context.bot.send_message(
                     message.from_user.id,
@@ -91,7 +97,7 @@ def echo(update: Update, context: CallbackContext) -> None:
                 )
         suggestions = do_recognize(file) if file else []
         results_dict[message.from_user.id] = suggestions
-        choices = 'Choose suggestion number to look up:\n' if suggestions else 'Recognition unsuccessful'
+        choices = 'Choose suggestion number to look up:\n' if suggestions else 'Recognition unsuccessful.'
         for i in range(0, len(suggestions)):
             option = suggestions[i]
             choices += f'{i} : {option[0]} ({option[1]})\n'
@@ -159,8 +165,8 @@ def main() -> None:
     # Register handler for inline buttons
     dispatcher.add_handler(CallbackQueryHandler(button_tap))
 
-    # Echo any text message that is not a command, handle photos and files
-    dispatcher.add_handler(MessageHandler(~Filters.command, echo))
+    # Process any text message that is not a command, handle photos and files
+    dispatcher.add_handler(MessageHandler(~Filters.command, service))
 
     # Start the Bot
     updater.start_polling()

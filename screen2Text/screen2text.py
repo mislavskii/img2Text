@@ -1,3 +1,5 @@
+import time
+
 from PIL import ImageGrab
 import pytesseract
 import requests as rq
@@ -210,13 +212,13 @@ class DictLookup(ClipImg2Text):
         response = None
         attempts = 3
         print(f'Looking up {word}... ', end='')
-        while attempts:
+        for _ in range(attempts):
             try:
                 response = rq.get(self.dic_url + word, timeout=15)
                 break
             except:
-                attempts -= 1
                 print(' * ', end='')
+                time.sleep(1)
                 continue
         print()
         if not response or response.status_code != 200:
