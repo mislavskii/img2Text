@@ -11,7 +11,7 @@ def do_recognize(file):
     im = Image.open(BytesIO(r.content))
     x = dlp()
     x.load_image(im)
-    x.threads_recognize(lang='tha', kind='word')
+    x.threads_recognize(lang='tha', kind='line')
     x.generate_suggestions()
     return x.suggestions
 

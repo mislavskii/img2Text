@@ -1,4 +1,6 @@
 import logging
+
+import telegram.error
 from telegram import Update, ForceReply, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 
@@ -65,9 +67,10 @@ def service(update: Update, context: CallbackContext) -> None:
             x = dlp()
             x.lookup(word)
             output = x.output_markdown()
+            tail = ' ...\nclick the link below for more'
             context.bot.send_message(
                 message.from_user.id,
-                output if len(output) < 4096 else output[:4004] + ' ...\nclick the link below for more...',
+                output if len(output) < 4096 else output[:4096 - len(tail)] + tail,
                 parse_mode=ParseMode.MARKDOWN
             )
             return
@@ -77,17 +80,18 @@ def service(update: Update, context: CallbackContext) -> None:
             'Please submit a tightly cropped image of a word, enter suggestion number if known, '
             'or enter a word preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
         )
+        return
     elif message.photo or message.document:
         file = None
         if message.photo:
-            print(f'incoming photo from {message.from_user.full_name} detected by echo handler.')
+            print(f'incoming photo from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.photo[0].file_id)
             context.bot.send_message(
                 message.from_user.id,
                 f'Compressed image accepted. Processing...'
             )
         elif message.document:
-            print(f'incoming file from {message.from_user.full_name} detected by echo handler.')
+            print(f'incoming file from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.document.file_id)
             if file.file_path.endswith('.png'):
                 context.bot.send_message(
@@ -101,7 +105,8 @@ def service(update: Update, context: CallbackContext) -> None:
                 )
         suggestions = do_recognize(file) if file else []
         results_dict[message.from_user.id] = suggestions
-        choices = 'Choose suggestion number to look up:\n' if suggestions else 'Recognition unsuccessful.'
+        choices = 'Choose suggestion number to look up:\n' if suggestions else 'No meaningful recognition results ' \
+                                                                               'could be produced.'
         for i in range(0, len(suggestions)):
             option = suggestions[i]
             choices += f'{i} : {option[0]} ({option[1]})\n'
@@ -110,11 +115,13 @@ def service(update: Update, context: CallbackContext) -> None:
             choices
         )
         print(results_dict[message.from_user.id])
+        return
     else:
         context.bot.send_message(
             update.message.from_user.id,
             'What is it?'
         )
+        return
 
 
 def menu(update: Update, context: CallbackContext) -> None:
