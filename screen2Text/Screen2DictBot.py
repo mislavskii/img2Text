@@ -8,9 +8,11 @@ from bot_utils import *
 
 from bot_config import token
 
-
 results_dict = {}  # store bot recognition results
 
+logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
+                    filename='bot.log',
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Pre-assign menu text
@@ -33,12 +35,14 @@ SECOND_MENU_MARKUP = InlineKeyboardMarkup([
 
 
 def start(update: Update, context: CallbackContext) -> None:
-    context.bot.send_message(
+    logger.info('start called')
+    logger.info(context.bot.send_message(
         update.message.from_user.id,
         'Hello! To start using the service, please send a tightly cropped image of a word. '
         'The current implementation is built around Thai language drawing on Thai-based '
         '[Longdo Dictionary](https://dict.longdo.com/index.php).',
         parse_mode=ParseMode.MARKDOWN
+        ).text[:100]
     )
 
 
@@ -103,10 +107,12 @@ def service(update: Update, context: CallbackContext) -> None:
                     update.message.from_user.id,
                     'File could not be accepted: unexpected type based on extension.'
                 )
-        suggestions = do_recognize(file) if file else []
-        results_dict[message.from_user.id] = suggestions
-        choices = 'Choose suggestion number to look up:\n' if suggestions else 'No meaningful recognition results ' \
-                                                                               'could be produced.'
+                return
+        results_dict[message.from_user.id] = do_recognize(file) if file else []
+        suggestions = results_dict[message.from_user.id]
+        choices = \
+            'Choose suggestion number to look up:\n' if suggestions \
+                else 'No meaningful recognition results could be produced.'
         for i in range(0, len(suggestions)):
             option = suggestions[i]
             choices += f'{i} : {option[0]} ({option[1]})\n'
@@ -180,7 +186,7 @@ def main() -> None:
     dispatcher.add_handler(MessageHandler(~Filters.command, service))
 
     # Start the Bot
-    updater.start_polling()
+    updater.start_polling(poll_interval=2, bootstrap_retries=2)
 
     # Run the bot until you press Ctrl-C
     updater.idle()
