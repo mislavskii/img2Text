@@ -10,7 +10,6 @@ import threading
 from datetime import datetime as dt
 from pythainlp import spell, correct
 import os
-import pandas as pd
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -86,7 +85,7 @@ class ClipImg2Text:
 
     def fan_binarize(self):
         self.bims = {}
-        for skew in range(50, 150, 5):
+        for skew in range(60, 140, 5):
             bim = self.binarize(skew / 100)
             bim.save(f'bims/{skew}.png')
             self.bims[skew] = bim
