@@ -47,6 +47,26 @@ def send_compressed_confirmation(message, context):
     return sent
 
 
+def send_uncompressed_confirmation(message, context):
+    sent = context.bot.send_message(
+        message.from_user.id,
+        'Uncompressed image file accepted. Processing...'
+    )
+    logger.info('uncompressed confirmation sent successfully') if sent else logger.warning('something went wrong... :(')
+    return sent
+
+
+def send_rejection_note(message, context):
+    logger.info('unsupported file extension, sending rejection note...')
+    sent = context.bot.send_message(
+        message.from_user.id,
+        'File could not be accepted: unexpected type based on extension.'
+    )
+    logger.info(f'rejection note sent successfully to {message.from_user.full_name}'
+                ) if sent else logger.warning('something went wrong... :(')
+    return sent
+
+
 def do_recognize(file):
     logger.info(f'attempting recognition of {file.file_path}')
     try:

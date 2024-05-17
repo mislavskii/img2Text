@@ -62,15 +62,9 @@ def service(update: Update, context: CallbackContext) -> None:
             logger.info(f'incoming file from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.document.file_id)
             if file.file_path.endswith('.png'):
-                context.bot.send_message(
-                    message.from_user.id,
-                    'Uncompressed image file accepted. Processing...'
-                )
+                send_uncompressed_confirmation(message, context)
             else:
-                context.bot.send_message(
-                    update.message.from_user.id,
-                    'File could not be accepted: unexpected type based on extension.'
-                )
+                send_rejection_note(message, context)
                 return
         results_dict[message.from_user.id] = do_recognize(file) if file else []
         suggestions = results_dict[message.from_user.id]
