@@ -72,10 +72,7 @@ def service(update: Update, context: CallbackContext) -> None:
         send_choices(message, context, choices)
         return
     else:
-        context.bot.send_message(
-            update.message.from_user.id,
-            'What is it?'
-        )
+        send_baffled(message, context)
         return
 
 

@@ -116,3 +116,13 @@ def send_hint(message, context):
         f'failed sending hint message to {message.from_user.full_name}'
     )
     return sent
+
+
+def send_baffled(message, context):
+    logger.info(f'unknown matter encountered in the message, sending baffled note...')
+    sent = context.bot.send_message(
+        message.from_user.id,
+        'What is it?'
+    )
+    logger.info('sent successfully') if sent else logger.warning('something went wrong... :(')
+    return sent
