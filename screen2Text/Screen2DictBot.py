@@ -27,10 +27,8 @@ def service(update: Update, context: CallbackContext) -> None:
         word = obtain_word(message)
         if word:
             do_lookup(message, context, word)
-            return
         else:
             send_hint(message, context)
-            return
     elif message.photo or message.document:
         file = None
         if message.photo:
@@ -93,6 +91,10 @@ def button_tap(update: Update, context: CallbackContext) -> None:  # Not yet imp
     )
 
 
+def simulated_error(update: Update, context: CallbackContext):
+    raise Exception('Intentional error for testing purposes')
+
+
 def error_handler(update: Update, context: CallbackContext):
     """Handle errors raised by handlers."""
     logger.info(f'error handler invoked in relation to {update.message.text}')
@@ -100,7 +102,7 @@ def error_handler(update: Update, context: CallbackContext):
 
 
 def main() -> None:
-    updater = Updater(token)
+    updater = Updater(token, request_kwargs={'read_timeout': 10})
 
     # Get the dispatcher to register handlers
     # Then, we register each handler and the conditions the update must meet to trigger it
@@ -109,6 +111,7 @@ def main() -> None:
     # Register commands
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("menu", menu))
+    dispatcher.add_handler(CommandHandler("error", simulated_error))
 
     # Register handler for inline buttons
     dispatcher.add_handler(CallbackQueryHandler(button_tap))
