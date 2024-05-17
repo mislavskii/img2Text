@@ -1,11 +1,8 @@
-import logging
-
-import telegram.error
-from telegram import Update, ForceReply, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
+from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 
-from bot_utils import *
 from bot_config import token
+from bot_utils import *
 
 results_dict = {}  # store bot recognition results
 
@@ -53,10 +50,14 @@ def service(update: Update, context: CallbackContext) -> None:
                 parse_mode=ParseMode.MARKDOWN
             )
             return
-        # This is equivalent to forwarding, without the sender's name
-        context.bot.send_message(
+        logger.info('no meaningful action could be taken based on the message text, sending hint...')
+        sent = context.bot.send_message(
             message.from_user.id,
             HINT_MESSAGE
+        )
+        logger.info(f'hint message sent to {update.message.from_user.full_name}'
+                    ) if sent else logger.warning(
+                        f'failed sending hint message to {update.message.from_user.full_name}'
         )
         return
     elif message.photo or message.document:
@@ -84,17 +85,13 @@ def service(update: Update, context: CallbackContext) -> None:
                 return
         results_dict[message.from_user.id] = do_recognize(file) if file else []
         suggestions = results_dict[message.from_user.id]
-        choices = \
-            'Choose suggestion number to look up:\n' if suggestions \
-                else 'No meaningful recognition results could be produced.'
-        for i in range(0, len(suggestions)):
-            option = suggestions[i]
-            choices += f'{i} : {option[0]} ({option[1]})\n'
-        context.bot.send_message(
+        choices = generate_choices(suggestions)
+        logger.info(f'sending choices to {message.from_user.full_name}')
+        sent = context.bot.send_message(
             message.from_user.id,
             choices
         )
-        logger.info(results_dict[message.from_user.id])
+        logger.info('sent successfully') if sent else logger.warning('something went wrong... :(')
         return
     else:
         context.bot.send_message(
@@ -106,7 +103,7 @@ def service(update: Update, context: CallbackContext) -> None:
 
 def menu(update: Update, context: CallbackContext) -> None:
     """
-    This handler sends a menu with the inline buttons we pre-assigned above
+    This handler sends a menu with the pre-assigned inline buttons
     """
     context.bot.send_message(
         update.message.from_user.id,
