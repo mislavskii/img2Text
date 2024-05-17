@@ -9,21 +9,16 @@ from bot_config import token
 
 results_dict = {}  # store bot recognition results
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
-                    filename='bot.log',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 def start(update: Update, context: CallbackContext) -> None:
     logger.info(f'/start called by {update.message.from_user.full_name}')
-    msg = context.bot.send_message(
+    sent = context.bot.send_message(
             update.message.from_user.id,
             START_MESSAGE,
             parse_mode=ParseMode.MARKDOWN
         )
-    logger.info(f'start message sent to {msg.from_user.full_name}'
-                ) if msg else logger.warning(f'failed sending start message to {msg.from_user.full_name}')
+    logger.info(f'start message sent to {update.message.from_user.full_name}'
+                ) if sent else logger.warning(f'failed sending start message to {update.message.from_user.full_name}')
 
 
 def service(update: Update, context: CallbackContext) -> None:
@@ -33,7 +28,7 @@ def service(update: Update, context: CallbackContext) -> None:
     global results_dict
     message = update.message
     if message.text:
-        print(f'{message.from_user.first_name} wrote: {message.text}')
+        logger.info(f'{message.from_user.first_name} wrote: {message.text}')
         word = ''
         if message.text.isdigit():
             if message.from_user.id in results_dict.keys():
@@ -61,21 +56,20 @@ def service(update: Update, context: CallbackContext) -> None:
         # This is equivalent to forwarding, without the sender's name
         context.bot.send_message(
             message.from_user.id,
-            'Please submit a tightly cropped image of a word, enter suggestion number if known, '
-            'or enter a word preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
+            HINT_MESSAGE
         )
         return
     elif message.photo or message.document:
         file = None
         if message.photo:
-            print(f'incoming photo from {message.from_user.full_name} detected by service handler.')
+            logger.info(f'incoming photo from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.photo[0].file_id)
             context.bot.send_message(
                 message.from_user.id,
                 f'Compressed image accepted. Processing...'
             )
         elif message.document:
-            print(f'incoming file from {message.from_user.full_name} detected by service handler.')
+            logger.info(f'incoming file from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.document.file_id)
             if file.file_path.endswith('.png'):
                 context.bot.send_message(
@@ -100,7 +94,7 @@ def service(update: Update, context: CallbackContext) -> None:
             message.from_user.id,
             choices
         )
-        print(results_dict[message.from_user.id])
+        logger.info(results_dict[message.from_user.id])
         return
     else:
         context.bot.send_message(
