@@ -25,7 +25,7 @@ def service(update: Update, context: CallbackContext) -> None:
     global results_dict
     message = update.message
     if message.text:
-        logger.info(f'{message.from_user.first_name} wrote: {message.text}')
+        logger.info(f'incoming text message from {message.from_user.full_name}')
         word = ''
         if message.text.isdigit():
             if message.from_user.id in results_dict.keys():
@@ -69,12 +69,7 @@ def service(update: Update, context: CallbackContext) -> None:
         results_dict[message.from_user.id] = do_recognize(file) if file else []
         suggestions = results_dict[message.from_user.id]
         choices = generate_choices(suggestions)
-        logger.info(f'sending choices to {message.from_user.full_name}')
-        sent = context.bot.send_message(
-            message.from_user.id,
-            choices
-        )
-        logger.info('sent successfully') if sent else logger.warning('something went wrong... :(')
+        send_choices(message, context, choices)
         return
     else:
         context.bot.send_message(

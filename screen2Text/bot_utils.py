@@ -95,6 +95,16 @@ def generate_choices(suggestions):
     return choices
 
 
+def send_choices(message, context, choices):
+    logger.info(f'sending choices to {message.from_user.full_name}')
+    sent = context.bot.send_message(
+        message.from_user.id,
+        choices
+    )
+    logger.info('sent successfully') if sent else logger.warning('something went wrong... :(')
+    return sent
+
+
 def send_hint(message, context):
     logger.info('no meaningful action could be taken based on the message text, sending hint...')
     sent = context.bot.send_message(
@@ -105,3 +115,4 @@ def send_hint(message, context):
                 ) if sent else logger.warning(
         f'failed sending hint message to {message.from_user.full_name}'
     )
+    return sent
