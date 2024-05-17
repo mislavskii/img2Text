@@ -38,6 +38,15 @@ SECOND_MENU_MARKUP = InlineKeyboardMarkup([
 ])
 
 
+def send_compressed_confirmation(message, context):
+    sent = context.bot.send_message(
+        message.from_user.id,
+        'Compressed image accepted. Processing...'
+    )
+    logger.info('compressed confirmation sent successfully') if sent else logger.warning('something went wrong... :(')
+    return sent
+
+
 def do_recognize(file):
     logger.info(f'attempting recognition of {file.file_path}')
     try:

@@ -57,10 +57,7 @@ def service(update: Update, context: CallbackContext) -> None:
         if message.photo:
             logger.info(f'incoming photo from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.photo[0].file_id)
-            context.bot.send_message(
-                message.from_user.id,
-                f'Compressed image accepted. Processing...'
-            )
+            send_compressed_confirmation(message, context)
         elif message.document:
             logger.info(f'incoming file from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.document.file_id)
