@@ -5,7 +5,6 @@ from telegram import Update, ForceReply, InlineKeyboardMarkup, InlineKeyboardBut
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 
 from bot_utils import *
-
 from bot_config import token
 
 results_dict = {}  # store bot recognition results
@@ -15,35 +14,16 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Pre-assign menu text
-FIRST_MENU = "<b>Menu 1</b>\n\nA beautiful menu with a shiny inline button."
-SECOND_MENU = "<b>Menu 2</b>\n\nA better menu with even more shiny inline buttons."
-
-# Pre-assign button text
-NEXT_BUTTON = "Next"
-BACK_BUTTON = "Back"
-TUTORIAL_BUTTON = "Tutorial"
-
-# Build keyboards
-FIRST_MENU_MARKUP = InlineKeyboardMarkup([[
-    InlineKeyboardButton(NEXT_BUTTON, callback_data=NEXT_BUTTON)
-]])
-SECOND_MENU_MARKUP = InlineKeyboardMarkup([
-    [InlineKeyboardButton(BACK_BUTTON, callback_data=BACK_BUTTON)],
-    [InlineKeyboardButton(TUTORIAL_BUTTON, url="https://core.telegram.org/bots/tutorial")]
-])
-
 
 def start(update: Update, context: CallbackContext) -> None:
-    logger.info('start called')
-    logger.info(context.bot.send_message(
-        update.message.from_user.id,
-        'Hello! To start using the service, please send a tightly cropped image of a word. '
-        'The current implementation is built around Thai language drawing on Thai-based '
-        '[Longdo Dictionary](https://dict.longdo.com/index.php).',
-        parse_mode=ParseMode.MARKDOWN
-        ).text[:100]
-    )
+    logger.info(f'/start called by {update.message.from_user.full_name}')
+    msg = context.bot.send_message(
+            update.message.from_user.id,
+            START_MESSAGE,
+            parse_mode=ParseMode.MARKDOWN
+        )
+    logger.info(f'start message sent to {msg.from_user.full_name}'
+                ) if msg else logger.warning(f'failed sending start message to {msg.from_user.full_name}')
 
 
 def service(update: Update, context: CallbackContext) -> None:
