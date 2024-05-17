@@ -3,7 +3,7 @@ import logging
 from io import BytesIO
 
 from PIL import Image
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 
 from screen2text import DictLookup as dlp
 import requests as rq
@@ -13,11 +13,14 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \
                 'The current implementation is built around Thai language drawing on Thai-based [Longdo Dictionary](' \
                 'https://dict.longdo.com/index.php).'
 HINT_MESSAGE = 'Please submit a tightly cropped image of a word, enter suggestion number if known, or enter a word ' \
                'preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
+LOOKUP_TAIL = '...\nclick the link below for more'
+
 
 # Pre-assign menu text
 FIRST_MENU = "<b>Menu 1</b>\n\nA beautiful menu with a shiny inline button."
@@ -84,6 +87,30 @@ def do_recognize(file):
     return x.suggestions
 
 
+def do_lookup(message, context, word):
+    logger.info(f'got a word to look up, initiating lookup for {word}')
+    sent = context.bot.send_message(
+        message.from_user.id,
+        f'looking up {word} ...'
+    )
+    logger.info(f'notification sent successfully to {message.from_user.full_name}'
+                ) if sent else logger.warning(
+        f'something went wrong when sending notification to {message.from_user.full_name}... :(')
+    x = dlp()
+    x.lookup(word)
+    output = x.output_markdown()
+    logger.info(f'lookup output generated ({output[:64] if len(output) > 64 else output} ...)')
+    sent = context.bot.send_message(
+        message.from_user.id,
+        output if len(output) < 4096 else output[:4096 - len(LOOKUP_TAIL)] + LOOKUP_TAIL,
+        parse_mode=ParseMode.MARKDOWN
+    )
+    logger.info(f'and sent successfully to {message.from_user.full_name}'
+                ) if sent else logger.warning(
+        f'something went wrong when sending output to {message.from_user.full_name}... :(')
+    return
+
+
 def generate_choices(suggestions):
     logger.info('generating choices')
     choices = 'Choose suggestion number to look up:\n' if suggestions \
@@ -101,7 +128,7 @@ def send_choices(message, context, choices):
         message.from_user.id,
         choices
     )
-    logger.info('sent successfully') if sent else logger.warning('something went wrong... :(')
+    logger.info('choices sent successfully') if sent else logger.warning('something went wrong... :(')
     return sent
 
 

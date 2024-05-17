@@ -1,4 +1,4 @@
-from telegram import Update, ParseMode
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
 
 from bot_config import token
@@ -36,22 +36,11 @@ def service(update: Update, context: CallbackContext) -> None:
         if message.text.lower().startswith('lookup') and len(message.text.split()) == 2:
             word = message.text.split()[-1]
         if word:
-            context.bot.send_message(
-                message.from_user.id,
-                f'looking up {word} ...'
-            )
-            x = dlp()
-            x.lookup(word)
-            output = x.output_markdown()
-            tail = ' ...\nclick the link below for more'
-            context.bot.send_message(
-                message.from_user.id,
-                output if len(output) < 4096 else output[:4096 - len(tail)] + tail,
-                parse_mode=ParseMode.MARKDOWN
-            )
+            do_lookup(message, context, word)
             return
-        send_hint(message, context)
-        return
+        else:
+            send_hint(message, context)
+            return
     elif message.photo or message.document:
         file = None
         if message.photo:
