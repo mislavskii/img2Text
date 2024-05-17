@@ -7,6 +7,9 @@ import requests as rq
 
 from screen2text import DictLookup as dlp
 
+results_dict = {}  # store bot recognition results
+
+
 # https://www.youtube.com/watch?v=9L77QExPmI0
 logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
                     filename='bot.log', encoding='utf-8',
@@ -83,6 +86,20 @@ def do_recognize(file):
     x.generate_suggestions()
     logger.info(f'image recognition produced  {len(x.suggestions)} suggestion(s)')
     return x.suggestions
+
+
+def obtain_word(message):
+    word = ''
+    text = message.text
+    if text.isdigit():
+        if message.from_user.id in results_dict.keys():
+            their_results = results_dict[message.from_user.id]
+            result_index = int(message.text)
+            if result_index < len(their_results):
+                word = their_results[result_index][0]
+    if message.text.lower().startswith('lookup') and len(message.text.split()) == 2:
+        word = message.text.split()[-1]
+    return word
 
 
 def do_lookup(message, context, word):

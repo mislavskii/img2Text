@@ -4,8 +4,6 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from bot_config import token
 from bot_utils import *
 
-results_dict = {}  # store bot recognition results
-
 
 def start(update: Update, context: CallbackContext) -> None:
     logger.info(f'/start called by {update.message.from_user.full_name}')
@@ -22,19 +20,11 @@ def service(update: Update, context: CallbackContext) -> None:
     """
     This function is added to the dispatcher as a general handler for messages coming from the Bot API
     """
-    global results_dict
+    # global results_dict
     message = update.message
     if message.text:
         logger.info(f'incoming text message from {message.from_user.full_name}')
-        word = ''
-        if message.text.isdigit():
-            if message.from_user.id in results_dict.keys():
-                their_results = results_dict[message.from_user.id]
-                result_index = int(message.text)
-                if result_index < len(their_results):
-                    word = their_results[result_index][0]
-        if message.text.lower().startswith('lookup') and len(message.text.split()) == 2:
-            word = message.text.split()[-1]
+        word = obtain_word(message)
         if word:
             do_lookup(message, context, word)
             return
@@ -65,7 +55,7 @@ def service(update: Update, context: CallbackContext) -> None:
         return
 
 
-def menu(update: Update, context: CallbackContext) -> None:
+def menu(update: Update, context: CallbackContext) -> None:  # Not yet implemented
     """
     This handler sends a menu with the pre-assigned inline buttons
     """
@@ -77,7 +67,7 @@ def menu(update: Update, context: CallbackContext) -> None:
     )
 
 
-def button_tap(update: Update, context: CallbackContext) -> None:
+def button_tap(update: Update, context: CallbackContext) -> None:  # Not yet implemented
     """
     This handler processes the inline buttons on the menu
     """
