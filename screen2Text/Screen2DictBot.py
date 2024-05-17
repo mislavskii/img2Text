@@ -50,15 +50,7 @@ def service(update: Update, context: CallbackContext) -> None:
                 parse_mode=ParseMode.MARKDOWN
             )
             return
-        logger.info('no meaningful action could be taken based on the message text, sending hint...')
-        sent = context.bot.send_message(
-            message.from_user.id,
-            HINT_MESSAGE
-        )
-        logger.info(f'hint message sent to {update.message.from_user.full_name}'
-                    ) if sent else logger.warning(
-                        f'failed sending hint message to {update.message.from_user.full_name}'
-        )
+        send_hint(message, context)
         return
     elif message.photo or message.document:
         file = None
