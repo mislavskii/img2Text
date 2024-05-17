@@ -1,18 +1,17 @@
 # https://github.com/python-telegram-bot/python-telegram-bot/discussions/2876#discussion-3831621
 import logging
 from io import BytesIO
-
 from PIL import Image
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
-
-from screen2text import DictLookup as dlp
 import requests as rq
 
+from screen2text import DictLookup as dlp
+
+# https://www.youtube.com/watch?v=9L77QExPmI0
 logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
-                    filename='bot.log',
+                    filename='bot.log', encoding='utf-8',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \
                 'The current implementation is built around Thai language drawing on Thai-based [Longdo Dictionary](' \
@@ -20,7 +19,6 @@ START_MESSAGE = 'Hello! To start using the service, please send a tightly croppe
 HINT_MESSAGE = 'Please submit a tightly cropped image of a word, enter suggestion number if known, or enter a word ' \
                'preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
 LOOKUP_TAIL = '...\nclick the link below for more'
-
 
 # Pre-assign menu text
 FIRST_MENU = "<b>Menu 1</b>\n\nA beautiful menu with a shiny inline button."
