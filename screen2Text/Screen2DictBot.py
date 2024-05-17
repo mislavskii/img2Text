@@ -93,6 +93,12 @@ def button_tap(update: Update, context: CallbackContext) -> None:  # Not yet imp
     )
 
 
+def error_handler(update: Update, context: CallbackContext):
+    """Handle errors raised by handlers."""
+    logger.info(f'error handler invoked in relation to {update.message.text}')
+    logger.error(f"Update {update} \ncaused error: \n{context.error}")
+
+
 def main() -> None:
     updater = Updater(token)
 
@@ -109,6 +115,8 @@ def main() -> None:
 
     # Process any text message that is not a command, handle photos and files
     dispatcher.add_handler(MessageHandler(~Filters.command, service))
+
+    dispatcher.add_error_handler(error_handler)
 
     # Start the Bot
     updater.start_polling(poll_interval=2, bootstrap_retries=2)
