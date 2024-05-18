@@ -270,12 +270,9 @@ class DictLookup(ClipImg2Text):
         output.append(f'Lookup results for **{self.word}** from [Longdo Dictionary]({self.dic_url + self.word})\n')
         for header, table in sorted(
                 zip(headers, tables),
-                key=lambda x: ('Longdo Dictionary' in x[0].text
-                        # ) or ('German-Thai:' in x[0].text
-                        # ) or ('French-Thai:' in x[0].text
-                )
+                key=lambda x: ('Longdo Dictionary' in x[0].text)
         ):
-            text = header.text
+            text = header.text.replace("**", "")
             if not ('Subtitles' in text):
                 output.append(f'\n**{header.text}**\n\n')
                 rows = table.find_all('tr')

@@ -137,14 +137,20 @@ def do_lookup(message, context, word):
     x = dlp()
     x.lookup(word)
     output = x.output_markdown()
+    if len(output) > 4096:
+        output = output[:4096 - len(LOOKUP_TAIL)]
+        last_newline = output.rfind('\n')
+        output = output[:last_newline] + LOOKUP_TAIL
     logger.info(f'lookup output generated ({output[:64] if len(output) > 64 else output} ...)')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
                              message.from_user.id,
-                             output if len(output) < 4096 else output[:4096 - len(LOOKUP_TAIL)] + LOOKUP_TAIL,
-                             parse_mode=ParseMode.MARKDOWN,
+                             output,
+                             # parse_mode=ParseMode.MARKDOWN_V2,
                              timeout=15
                              )
     logger.info(f'and sent successfully to {message.from_user.full_name}' if sent else FAILURE)
+    if not sent:
+        send_failure_note(message, context)
     return
 
 
@@ -165,7 +171,6 @@ def send_choices(message, context, choices):
                              choices
                              )
     logger.info('choices sent successfully' if sent else FAILURE)
-    return sent
 
 
 def send_hint(message, context):
