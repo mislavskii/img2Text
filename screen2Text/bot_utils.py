@@ -15,19 +15,19 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
 logger = logging.getLogger(__name__)
 
 START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \
-                '\n\nCurrent implementation is built around Thai language drawing on Thai-based [Longdo Dictionary](' \
-                'https://dict.longdo.com/index.php) in [Python](https://www.python.org/) programming language using [' \
-                'python-telegram-bot](https://github.com/python-telegram-bot) library as well as [Tesseract-OCR](' \
-                'https://tesseract-ocr.github.io/tessdoc/Installation.html) in ' \
+                '\n\nCurrent experimental implementation is built around Thai language drawing on Thai-based [Longdo ' \
+                'Dictionary](https://dict.longdo.com/index.php) in [Python](https://www.python.org/) programming ' \
+                'language using [python-telegram-bot](https://github.com/python-telegram-bot) library as well as [' \
+                'Tesseract-OCR](https://tesseract-ocr.github.io/tessdoc/Installation.html) in ' \
                 '[pytesseract](https://pypi.org/project/pytesseract/) wrapper, [NECTEC Lexitron](' \
                 'https://www.nectec.or.th/innovation/innovation-software/lexitron.html) and [PyThaiNLP](' \
                 'https://pythainlp.github.io/) for spelling verification, [Pillow](' \
                 'https://github.com/python-pillow/Pillow/) for image processing, [requests](' \
                 'https://requests.readthedocs.io) and [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) ' \
                 'for web content processing, and others. Many thanks to creators and maintainers of all these ' \
-                'resources!'
-HINT_MESSAGE = 'Please submit a tightly cropped image of a word, enter suggestion number if known, or enter a word ' \
-               'preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
+                'resources!\nFeel free to [contact the developer](https://t.me/jornjat) with any inquiries.'
+HINT_MESSAGE = 'Please submit a tightly cropped image of a word in Thai script, enter suggestion number if known, ' \
+               'or enter a word preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
 LOOKUP_TAIL = '...\nclick the link below for more'
 FAILURE = 'something went wrong.'
 
