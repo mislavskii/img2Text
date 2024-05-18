@@ -43,7 +43,12 @@ def service(update: Update, context: CallbackContext) -> None:
             else:
                 send_rejection_note(message, context)
                 return
-        results_dict[message.from_user.id] = do_recognize(file) if file else []
+        logger.info(f'loading {file.file_path}')
+        r = dlp.retry_or_none(rq.get, 3, 1, logger, file.file_path, timeout=30)
+        if not r:
+            send_failure_note(message, context)
+            return
+        results_dict[message.from_user.id] = do_recognize(r)
         suggestions = results_dict[message.from_user.id]
         choices = generate_choices(suggestions)
         send_choices(message, context, choices)

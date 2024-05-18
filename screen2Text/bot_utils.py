@@ -9,7 +9,6 @@ from screen2text import DictLookup as dlp
 
 results_dict = {}  # store bot recognition results
 
-
 # https://www.youtube.com/watch?v=9L77QExPmI0
 logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
                     filename='bot.log', encoding='utf-8',
@@ -47,7 +46,7 @@ def send_compressed_confirmation(message, context):
         message.from_user.id,
         'Loading compressed image from server...'
     )
-    logger.info('compressed confirmation sent successfully') if sent else logger.warning('something went wrong... :(')
+    logger.info('compressed confirmation sent successfully')
     return sent
 
 
@@ -56,7 +55,7 @@ def send_uncompressed_confirmation(message, context):
         message.from_user.id,
         'Loading uncompressed image file from server...'
     )
-    logger.info('uncompressed confirmation sent successfully') if sent else logger.warning('something went wrong... :(')
+    logger.info('uncompressed confirmation sent successfully')
     return sent
 
 
@@ -66,22 +65,26 @@ def send_rejection_note(message, context):
         message.from_user.id,
         'File could not be accepted: unexpected type based on extension.'
     )
-    logger.info(f'rejection note sent successfully to {message.from_user.full_name}'
-                ) if sent else logger.warning('something went wrong... :(')
+    logger.info(f'rejection note sent successfully to {message.from_user.full_name}')
+
+
+def send_failure_note(message, context):
+    sent = context.bot.send_message(
+        message.from_user.id,
+        'Something went wrong... Please consider trying one more time.'
+    )
+    logger.info(f'failure note sent successfully to {message.from_user.full_name}')
     return sent
 
 
-def do_recognize(file):
-    logger.info(f'attempting recognition of {file.file_path}')
-    r = dlp.retry_or_none(rq.get, 3, 1, logger, file.file_path, timeout=30)
+def do_recognize(r: rq.Response):
+    x = dlp()
     try:
-        im = Image.open(BytesIO(r.content))
+        x.load_image(BytesIO(r.content))
     except Exception as e:
         logger.info("Couldn't open the file")
         logger.error(e)
         return []
-    x = dlp()
-    x.load_image(im)
     x.threads_recognize(lang='tha', kind='line')
     x.generate_suggestions()
     logger.info(f'image recognition produced  {len(x.suggestions)} suggestion(s)')
@@ -104,26 +107,22 @@ def obtain_word(message):
 
 def do_lookup(message, context, word):
     logger.info(f'got a word to look up, initiating lookup for {word}')
-    sent = context.bot.send_message(
+    context.bot.send_message(
         message.from_user.id,
         f'looking up {word} ...'
     )
-    logger.info(f'notification sent successfully to {message.from_user.full_name}'
-                ) if sent else logger.warning(
-        f'something went wrong when sending notification to {message.from_user.full_name}... :(')
+    logger.info(f'notification sent successfully to {message.from_user.full_name}')
     x = dlp()
     x.lookup(word)
     output = x.output_markdown()
     logger.info(f'lookup output generated ({output[:64] if len(output) > 64 else output} ...)')
-    sent = context.bot.send_message(
+    context.bot.send_message(
         message.from_user.id,
         output if len(output) < 4096 else output[:4096 - len(LOOKUP_TAIL)] + LOOKUP_TAIL,
         parse_mode=ParseMode.MARKDOWN,
         timeout=15
     )
-    logger.info(f'and sent successfully to {message.from_user.full_name}'
-                ) if sent else logger.warning(
-        f'something went wrong when sending output to {message.from_user.full_name}... :(')
+    logger.info(f'and sent successfully to {message.from_user.full_name}')
     return
 
 
@@ -134,7 +133,6 @@ def generate_choices(suggestions):
     for i in range(0, len(suggestions)):
         option = suggestions[i]
         choices += f'{i} : {option[0]} ({option[1]})\n'
-    logger.info(f'generated')
     return choices
 
 
@@ -144,7 +142,7 @@ def send_choices(message, context, choices):
         message.from_user.id,
         choices
     )
-    logger.info('choices sent successfully') if sent else logger.warning('something went wrong... :(')
+    logger.info('choices sent successfully')
     return sent
 
 
@@ -154,10 +152,7 @@ def send_hint(message, context):
         message.from_user.id,
         HINT_MESSAGE
     )
-    logger.info(f'hint message sent to {message.from_user.full_name}'
-                ) if sent else logger.warning(
-        f'failed sending hint message to {message.from_user.full_name}'
-    )
+    logger.info(f'hint message sent to {message.from_user.full_name}')
     return sent
 
 
@@ -167,8 +162,5 @@ def send_baffled(message, context):
         message.from_user.id,
         'What is it?'
     )
-    logger.info('sent successfully') if sent else logger.warning('something went wrong... :(')
+    logger.info('sent successfully')
     return sent
-
-
-

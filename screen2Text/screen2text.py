@@ -1,7 +1,7 @@
 import logging
 import time
 
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 import pytesseract
 import requests as rq
 from bs4 import BeautifulSoup as bs
@@ -67,8 +67,8 @@ class ClipImg2Text:
             print('Looks like there was no image to grab. Please check the clipboard contents!')
             return
 
-    def load_image(self, pil_image):
-        self.im = pil_image
+    def load_image(self, path):
+        self.im = Image.open(path)
 
     def binarize(self, skew=1.0):
         im = self.im.copy().convert("L")
