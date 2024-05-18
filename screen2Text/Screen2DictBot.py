@@ -38,7 +38,7 @@ def service(update: Update, context: CallbackContext) -> None:
         elif message.document:
             logger.info(f'incoming file from {message.from_user.full_name} detected by service handler.')
             file = context.bot.get_file(message.document.file_id)
-            if file.file_path.endswith('.png'):
+            if file.file_path.endswith('.png') or file.file_path.endswith('.jpg'):
                 send_uncompressed_confirmation(message, context)
             else:
                 send_rejection_note(message, context)

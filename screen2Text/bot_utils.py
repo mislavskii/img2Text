@@ -1,9 +1,8 @@
 # https://github.com/python-telegram-bot/python-telegram-bot/discussions/2876#discussion-3831621
 import logging
 from io import BytesIO
-from PIL import Image
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 import requests as rq
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 
 from screen2text import DictLookup as dlp
 
