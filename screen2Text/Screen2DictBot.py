@@ -122,7 +122,7 @@ def main() -> None:
     dispatcher.add_error_handler(error_handler)
 
     # Start the Bot
-    updater.start_polling(poll_interval=2, bootstrap_retries=2)
+    updater.start_polling(poll_interval=2, timeout=10, bootstrap_retries=2)
 
     # Run the bot until you press Ctrl-C
     updater.idle()

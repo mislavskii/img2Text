@@ -118,7 +118,8 @@ def do_lookup(message, context, word):
     sent = context.bot.send_message(
         message.from_user.id,
         output if len(output) < 4096 else output[:4096 - len(LOOKUP_TAIL)] + LOOKUP_TAIL,
-        parse_mode=ParseMode.MARKDOWN
+        parse_mode=ParseMode.MARKDOWN,
+        timeout=15
     )
     logger.info(f'and sent successfully to {message.from_user.full_name}'
                 ) if sent else logger.warning(
