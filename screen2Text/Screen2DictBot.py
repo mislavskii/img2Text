@@ -48,7 +48,7 @@ def service(update: Update, context: CallbackContext) -> None:
         if not r:
             send_failure_note(message, context)
             return
-        results_dict[message.from_user.id] = do_recognize(r)
+        results_dict[message.from_user.id] = do_recognize(r, message, context)
         suggestions = results_dict[message.from_user.id]
         choices = generate_choices(suggestions)
         send_choices(message, context, choices)

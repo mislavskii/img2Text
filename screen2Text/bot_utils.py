@@ -58,6 +58,15 @@ def send_uncompressed_confirmation(message, context):
     return sent
 
 
+def send_processing_note(message, context):
+    sent = context.bot.send_message(
+        message.from_user.id,
+        'File loaded. Attempting recognition...'
+    )
+    logger.info('processing note sent successfully')
+    return sent
+
+
 def send_rejection_note(message, context):
     logger.info('unsupported file extension, sending rejection note...')
     sent = context.bot.send_message(
@@ -76,14 +85,17 @@ def send_failure_note(message, context):
     return sent
 
 
-def do_recognize(r: rq.Response):
+def do_recognize(r: rq.Response, message, context):
     x = dlp()
     try:
         x.load_image(BytesIO(r.content))
     except Exception as e:
         logger.info("Couldn't open the file")
+        send_failure_note(message, context)
         logger.error(e)
         return []
+    logger.info('initiating recognition...')
+    send_processing_note(message, context)
     x.threads_recognize(lang='tha', kind='line')
     x.generate_suggestions()
     logger.info(f'image recognition produced  {len(x.suggestions)} suggestion(s)')
