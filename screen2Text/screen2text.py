@@ -236,9 +236,7 @@ class DictLookup(ClipImg2Text):
 
     def lookup(self, word):
         self.word = word
-        response = None
-        attempts = 3
-        print(f'Looking up {word}... ', end='')
+        print(f'Looking up {word}... ')
         response = self.retry_or_none(rq.get, 3, 1, None, self.dic_url + word, timeout=15)
         if not response or response.status_code != 200:
             print("Couldn't fetch.")
