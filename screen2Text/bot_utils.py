@@ -15,11 +15,21 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
 logger = logging.getLogger(__name__)
 
 START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \
-                'The current implementation is built around Thai language drawing on Thai-based [Longdo Dictionary](' \
-                'https://dict.longdo.com/index.php).'
+                '\n\nCurrent implementation is built around Thai language drawing on Thai-based [Longdo Dictionary](' \
+                'https://dict.longdo.com/index.php) in [Python](https://www.python.org/) programming language using [' \
+                'python-telegram-bot](https://github.com/python-telegram-bot) library as well as [Tesseract-OCR](' \
+                'https://tesseract-ocr.github.io/tessdoc/Installation.html) in ' \
+                '[pytesseract](https://pypi.org/project/pytesseract/) wrapper, [NECTEC Lexitron](' \
+                'https://www.nectec.or.th/innovation/innovation-software/lexitron.html) and [PyThaiNLP](' \
+                'https://pythainlp.github.io/) for spelling verification, [Pillow](' \
+                'https://github.com/python-pillow/Pillow/) for image processing, [requests](' \
+                'https://requests.readthedocs.io) and [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) ' \
+                'for web content processing, and others. Many thanks to creators and maintainers of all these ' \
+                'resources!'
 HINT_MESSAGE = 'Please submit a tightly cropped image of a word, enter suggestion number if known, or enter a word ' \
                'preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
 LOOKUP_TAIL = '...\nclick the link below for more'
+FAILURE = 'something went wrong.'
 
 # Pre-assign menu text
 FIRST_MENU = "<b>Menu 1</b>\n\nA beautiful menu with a shiny inline button."
@@ -41,47 +51,48 @@ SECOND_MENU_MARKUP = InlineKeyboardMarkup([
 
 
 def send_compressed_confirmation(message, context):
-    sent = context.bot.send_message(
-        message.from_user.id,
-        'Loading compressed image from server...'
-    )
-    logger.info('compressed confirmation sent successfully')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             'Loading compressed image from server...'
+                             )
+    logger.info('compressed confirmation sent successfully' if sent else FAILURE)
     return sent
 
 
 def send_uncompressed_confirmation(message, context):
-    sent = context.bot.send_message(
-        message.from_user.id,
-        'Loading uncompressed image file from server...'
-    )
-    logger.info('uncompressed confirmation sent successfully')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             'Loading uncompressed image file from server...'
+                             )
+    logger.info('uncompressed confirmation sent successfully' if sent else FAILURE)
     return sent
 
 
 def send_processing_note(message, context):
-    sent = context.bot.send_message(
-        message.from_user.id,
-        'File loaded. Attempting recognition...'
-    )
-    logger.info('processing note sent successfully')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             'File loaded. Attempting recognition...'
+                             )
+    logger.info('processing note sent successfully' if sent else FAILURE)
     return sent
 
 
 def send_rejection_note(message, context):
     logger.info('unsupported file extension, sending rejection note...')
-    sent = context.bot.send_message(
-        message.from_user.id,
-        'File could not be accepted: unexpected type based on extension.'
-    )
-    logger.info(f'rejection note sent successfully to {message.from_user.full_name}')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             'File could not be accepted: unexpected type based on extension.'
+                             )
+    logger.info(f'rejection note sent successfully to {message.from_user.full_name}' if sent else FAILURE)
+    return sent
 
 
 def send_failure_note(message, context):
-    sent = context.bot.send_message(
-        message.from_user.id,
-        'Something went wrong... Please consider trying one more time.'
-    )
-    logger.info(f'failure note sent successfully to {message.from_user.full_name}')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             'Something went wrong... Please consider trying one more time.'
+                             )
+    logger.info(f'failure note sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     return sent
 
 
@@ -91,8 +102,8 @@ def do_recognize(r: rq.Response, message, context):
         x.load_image(BytesIO(r.content))
     except Exception as e:
         logger.info("Couldn't open the file")
-        send_failure_note(message, context)
         logger.error(e)
+        send_failure_note(message, context)
         return []
     logger.info('initiating recognition...')
     send_processing_note(message, context)
@@ -118,22 +129,22 @@ def obtain_word(message):
 
 def do_lookup(message, context, word):
     logger.info(f'got a word to look up, initiating lookup for {word}')
-    context.bot.send_message(
-        message.from_user.id,
-        f'looking up {word} ...'
-    )
-    logger.info(f'notification sent successfully to {message.from_user.full_name}')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             f'looking up {word} ...'
+                             )
+    logger.info(f'notification sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     x = dlp()
     x.lookup(word)
     output = x.output_markdown()
     logger.info(f'lookup output generated ({output[:64] if len(output) > 64 else output} ...)')
-    context.bot.send_message(
-        message.from_user.id,
-        output if len(output) < 4096 else output[:4096 - len(LOOKUP_TAIL)] + LOOKUP_TAIL,
-        parse_mode=ParseMode.MARKDOWN,
-        timeout=15
-    )
-    logger.info(f'and sent successfully to {message.from_user.full_name}')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             output if len(output) < 4096 else output[:4096 - len(LOOKUP_TAIL)] + LOOKUP_TAIL,
+                             parse_mode=ParseMode.MARKDOWN,
+                             timeout=15
+                             )
+    logger.info(f'and sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     return
 
 
@@ -153,25 +164,25 @@ def send_choices(message, context, choices):
                              message.from_user.id,
                              choices
                              )
-    logger.info('choices sent successfully') if sent else logger.info('something went wrong.')
+    logger.info('choices sent successfully' if sent else FAILURE)
     return sent
 
 
 def send_hint(message, context):
     logger.info('no meaningful action could be taken based on the message text, sending hint...')
-    sent = context.bot.send_message(
-        message.from_user.id,
-        HINT_MESSAGE
-    )
-    logger.info(f'hint message sent to {message.from_user.full_name}')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             HINT_MESSAGE
+                             )
+    logger.info(f'hint message sent to {message.from_user.full_name}' if sent else FAILURE)
     return sent
 
 
 def send_baffled(message, context):
     logger.info(f'unknown matter encountered in the message, sending baffled note...')
-    sent = context.bot.send_message(
-        message.from_user.id,
-        'What is it?'
-    )
-    logger.info('sent successfully')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             'What is it?'
+                             )
+    logger.info('sent successfully' if sent else FAILURE)
     return sent
