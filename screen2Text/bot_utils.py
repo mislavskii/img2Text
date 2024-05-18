@@ -73,8 +73,8 @@ def send_rejection_note(message, context):
 
 def do_recognize(file):
     logger.info(f'attempting recognition of {file.file_path}')
+    r = dlp.retry_or_none(rq.get, 3, 1, logger, file.file_path, timeout=30)
     try:
-        r = dlp.retry_or_none(rq.get, 3, 1, logger, file.file_path, timeout=30)
         im = Image.open(BytesIO(r.content))
     except Exception as e:
         logger.info("Couldn't open the file")
