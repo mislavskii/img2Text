@@ -246,9 +246,10 @@ class DictLookup(ClipImg2Text):
         display(HTML(style + content))
 
     def output_markdown(self):
+        output = []
         headers = self.soup.find_all('td', attrs={'class': 'search-table-header'})
         tables = self.soup.find_all('table', attrs={'class': 'search-result-table'})
-        output = f'Lookup results for **{self.word}** from [Longdo Dictionary]({self.dic_url + self.word})\n'
+        output.append(f'Lookup results for **{self.word}** from [Longdo Dictionary]({self.dic_url + self.word})\n')
         for header, table in sorted(
                 zip(headers, tables),
                 key=lambda x: ('Longdo Dictionary' in x[0].text
@@ -258,13 +259,13 @@ class DictLookup(ClipImg2Text):
         ):
             text = header.text
             if not ('Subtitles' in text):
-                output += f'\n**{header.text}**\n\n'
+                output.append(f'\n**{header.text}**\n\n')
                 rows = table.find_all('tr')
                 for row in rows:
-                    output += '- '
+                    output.append('- ')
                     for cell in row.find_all('td'):
-                        output += f'{cell.text.replace("<i>", "_").replace("</i>", "_")}\n'
-        return output
+                        output.append(f'{cell.text.replace("<i>", "_").replace("</i>", "_")}\n')
+        return ''.join(output)
 
     def recognize_and_lookup(self, lang='tha', kind=None, output='html'):
         self.grab()
