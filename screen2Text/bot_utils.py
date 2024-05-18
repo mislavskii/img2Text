@@ -149,11 +149,11 @@ def generate_choices(suggestions):
 
 def send_choices(message, context, choices):
     logger.info(f'sending choices to {message.from_user.full_name}')
-    sent = context.bot.send_message(
-        message.from_user.id,
-        choices
-    )
-    logger.info('choices sent successfully')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             choices
+                             )
+    logger.info('choices sent successfully') if sent else logger.info('something went wrong.')
     return sent
 
 
