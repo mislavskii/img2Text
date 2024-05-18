@@ -45,7 +45,7 @@ SECOND_MENU_MARKUP = InlineKeyboardMarkup([
 def send_compressed_confirmation(message, context):
     sent = context.bot.send_message(
         message.from_user.id,
-        'Compressed image accepted. Processing...'
+        'Loading compressed image from server...'
     )
     logger.info('compressed confirmation sent successfully') if sent else logger.warning('something went wrong... :(')
     return sent
@@ -54,7 +54,7 @@ def send_compressed_confirmation(message, context):
 def send_uncompressed_confirmation(message, context):
     sent = context.bot.send_message(
         message.from_user.id,
-        'Uncompressed image file accepted. Processing...'
+        'Loading uncompressed image file from server...'
     )
     logger.info('uncompressed confirmation sent successfully') if sent else logger.warning('something went wrong... :(')
     return sent

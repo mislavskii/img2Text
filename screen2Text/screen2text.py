@@ -1,3 +1,4 @@
+import logging
 import time
 
 from PIL import ImageGrab
@@ -202,7 +203,7 @@ class DictLookup(ClipImg2Text):
     dic_url = 'https://dict.longdo.com/search/'
 
     @staticmethod
-    def retry_or_none(func, attempts, seconds, logger, *args, **kwargs):
+    def retry_or_none(func, attempts: int, seconds: int | float, logger: logging.Logger | None, *args, **kwargs):
         """
         Tries to call a function repeatedly until success, logging error on exception. If no logger, MUST be `None`,
         and an `*` will be printed out on each retry, with no line break.
@@ -239,15 +240,6 @@ class DictLookup(ClipImg2Text):
         attempts = 3
         print(f'Looking up {word}... ', end='')
         response = self.retry_or_none(rq.get, 3, 1, None, self.dic_url + word, timeout=15)
-        # for _ in range(attempts):
-        #     try:
-        #         response = rq.get(self.dic_url + word, timeout=15)
-        #         break
-        #     except:
-        #         print(' * ', end='')
-        #         time.sleep(1)
-        #         continue
-        # print()
         if not response or response.status_code != 200:
             print("Couldn't fetch.")
             return
