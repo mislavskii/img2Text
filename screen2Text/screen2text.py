@@ -249,9 +249,15 @@ class DictLookup(ClipImg2Text):
         headers = self.soup.find_all('td', attrs={'class': 'search-table-header'})
         tables = self.soup.find_all('table', attrs={'class': 'search-result-table'})
         output = f'Lookup results for **{self.word}** from [Longdo Dictionary]({self.dic_url + self.word})\n'
-        for header, table in zip(headers, tables):
+        for header, table in sorted(
+                zip(headers, tables),
+                key=lambda x: ('Longdo Dictionary' in x[0].text
+                                    # ) or ('German-Thai:' in x[0].text
+                                    # ) or ('French-Thai:' in x[0].text
+                )
+        ):
             text = header.text
-            if not ('Subtitles' in text or 'German-Thai:' in text or 'French-Thai:' in text):
+            if not ('Subtitles' in text):
                 output += f'\n**{header.text}**\n\n'
                 rows = table.find_all('tr')
                 for row in rows:
