@@ -220,13 +220,13 @@ class DictLookup(ClipImg2Text):
                 return func(*args, **kwargs)
             except Exception as e:
                 if logger:
-                    logger.error(e)
+                    logger.error(e, stack_info=True)
+                    logger.info('retrying...')
                 else:
                     print(' * ', end='')
                 time.sleep(seconds)
                 continue
-        if not logger:
-            print()
+        print('Execution unsuccessful.')
         return None
 
     def __init__(self):

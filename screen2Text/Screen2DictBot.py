@@ -20,7 +20,6 @@ def service(update: Update, context: CallbackContext) -> None:
     """
     This function is added to the dispatcher as a general handler for messages coming from the Bot API
     """
-    # global results_dict
     message = update.message
     if message.text:
         logger.info(f'incoming text message from {message.from_user.full_name}')
