@@ -201,6 +201,33 @@ class ClipImg2Text:
 class DictLookup(ClipImg2Text):
     dic_url = 'https://dict.longdo.com/search/'
 
+    @staticmethod
+    def retry_or_none(func, attempts, seconds, logger, *args, **kwargs):
+        """
+        Tries to call a function repeatedly until success, logging error on exception. If no logger, MUST be `None`,
+        and an `*` will be printed out on each retry, with no line break.
+        :param func: function to call
+        :param attempts: total number of calls
+        :param seconds: interval between repeated calls
+        :param logger: logger instance if available, otherwise must be None (or it will blow up)
+        :param args: arguments for the called function
+        :param kwargs: keyword arguments for the called function
+        :return: whatever the called function should return or None in case of ultimate failure
+        """
+        for _ in range(attempts):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if logger:
+                    logger.error(e)
+                else:
+                    print(' * ', end='')
+                time.sleep(seconds)
+                continue
+        if not logger:
+            print()
+        return None
+
     def __init__(self):
         super().__init__()
         self.word = None
@@ -211,15 +238,16 @@ class DictLookup(ClipImg2Text):
         response = None
         attempts = 3
         print(f'Looking up {word}... ', end='')
-        for _ in range(attempts):
-            try:
-                response = rq.get(self.dic_url + word, timeout=15)
-                break
-            except:
-                print(' * ', end='')
-                time.sleep(1)
-                continue
-        print()
+        response = self.retry_or_none(rq.get, 3, 1, None, self.dic_url + word, timeout=15)
+        # for _ in range(attempts):
+        #     try:
+        #         response = rq.get(self.dic_url + word, timeout=15)
+        #         break
+        #     except:
+        #         print(' * ', end='')
+        #         time.sleep(1)
+        #         continue
+        # print()
         if not response or response.status_code != 200:
             print("Couldn't fetch.")
             return
@@ -253,8 +281,8 @@ class DictLookup(ClipImg2Text):
         for header, table in sorted(
                 zip(headers, tables),
                 key=lambda x: ('Longdo Dictionary' in x[0].text
-                                    # ) or ('German-Thai:' in x[0].text
-                                    # ) or ('French-Thai:' in x[0].text
+                        # ) or ('German-Thai:' in x[0].text
+                        # ) or ('French-Thai:' in x[0].text
                 )
         ):
             text = header.text
