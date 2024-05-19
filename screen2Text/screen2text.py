@@ -226,7 +226,6 @@ class DictLookup(ClipImg2Text):
                     print(' * ', end='')
                 time.sleep(seconds)
                 continue
-        print('Execution unsuccessful.')
         return None
 
     def __init__(self):
@@ -280,6 +279,25 @@ class DictLookup(ClipImg2Text):
                     output.append('- ')
                     for cell in row.find_all('td'):
                         output.append(f'{cell.text.replace("<i>", "_").replace("</i>", "_")}\n')
+        return ''.join(output)
+
+    def output_plain(self):
+        output = []
+        headers = self.soup.find_all('td', attrs={'class': 'search-table-header'})
+        tables = self.soup.find_all('table', attrs={'class': 'search-result-table'})
+        output.append(f'Lookup results for "{self.word}" from Longdo Dictionary \n{self.dic_url + self.word}\n')
+        for header, table in sorted(
+                zip(headers, tables),
+                key=lambda x: ('Longdo Dictionary' in x[0].text)
+        ):
+            text = header.text
+            if not ('Subtitles' in text):
+                output.append(f'\n{header.text}\n\n')
+                rows = table.find_all('tr')
+                for row in rows:
+                    output.append('- ')
+                    for cell in row.find_all('td'):
+                        output.append(f'{cell.text.replace("<i>", "").replace("</i>", "")}\n')
         return ''.join(output)
 
     def recognize_and_lookup(self, lang='tha', kind=None, output='html'):

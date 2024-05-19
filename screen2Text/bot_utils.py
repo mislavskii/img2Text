@@ -28,6 +28,7 @@ START_MESSAGE = 'Hello! To start using the service, please send a tightly croppe
                 'resources!\nFeel free to [contact the developer](https://t.me/jornjat) with any inquiries.'
 HINT_MESSAGE = 'Please submit a tightly cropped image of a word in Thai script, enter suggestion number if known, ' \
                'or enter a word preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
+MAX_LENGTH = 4096
 LOOKUP_TAIL = '...\nclick the link below for more'
 FAILURE = 'something went wrong.'
 
@@ -90,7 +91,7 @@ def send_rejection_note(message, context):
 def send_failure_note(message, context):
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
                              message.from_user.id,
-                             'Something went wrong... Please consider trying one more time.'
+                             'Something went wrong... Please consider trying one more time or move on.'
                              )
     logger.info(f'failure note sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     return sent
@@ -111,6 +112,25 @@ def do_recognize(r: rq.Response, message, context):
     x.generate_suggestions()
     logger.info(f'image recognition produced  {len(x.suggestions)} suggestion(s)')
     return x.suggestions
+
+
+def generate_choices(suggestions):
+    logger.info('generating choices')
+    choices = 'Choose suggestion number to look up:\n' if suggestions \
+        else 'No meaningful recognition results could be produced.'
+    for i in range(0, len(suggestions)):
+        option = suggestions[i]
+        choices += f'{i} : {option[0]} ({option[1]})\n'
+    return choices
+
+
+def send_choices(message, context, choices):
+    logger.info(f'sending choices to {message.from_user.full_name}')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                             message.from_user.id,
+                             choices
+                             )
+    logger.info('choices sent successfully' if sent else FAILURE)
 
 
 def obtain_word(message):
@@ -136,41 +156,35 @@ def do_lookup(message, context, word):
     logger.info(f'notification sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     x = dlp()
     x.lookup(word)
-    output = x.output_markdown()
-    if len(output) > 4096:
-        output = output[:4096 - len(LOOKUP_TAIL)]
-        last_newline = output.rfind('\n')
-        output = output[:last_newline] + LOOKUP_TAIL
-    logger.info(f'lookup output generated ({output[:64] if len(output) > 64 else output} ...)')
+    output = trim_output(x.output_markdown(), MAX_LENGTH)
+    logger.info(f'markdown output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
                              message.from_user.id,
                              output,
-                             # parse_mode=ParseMode.MARKDOWN_V2,
+                             parse_mode=ParseMode.MARKDOWN,
                              timeout=15
                              )
     logger.info(f'and sent successfully to {message.from_user.full_name}' if sent else FAILURE)
+    if not sent:
+        output = trim_output(x.output_plain(), MAX_LENGTH)
+        logger.info(f'plain output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
+        sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+                                 message.from_user.id,
+                                 output,
+                                 timeout=15
+                                 )
+        logger.info(f'and sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     if not sent:
         send_failure_note(message, context)
     return
 
 
-def generate_choices(suggestions):
-    logger.info('generating choices')
-    choices = 'Choose suggestion number to look up:\n' if suggestions \
-        else 'No meaningful recognition results could be produced.'
-    for i in range(0, len(suggestions)):
-        option = suggestions[i]
-        choices += f'{i} : {option[0]} ({option[1]})\n'
-    return choices
-
-
-def send_choices(message, context, choices):
-    logger.info(f'sending choices to {message.from_user.full_name}')
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
-                             message.from_user.id,
-                             choices
-                             )
-    logger.info('choices sent successfully' if sent else FAILURE)
+def trim_output(output: str, max_length: int) -> str:
+    if len(output) > max_length:
+        output = output[:4096 - len(LOOKUP_TAIL)]
+        last_newline = output.rfind('\n')
+        return output[:last_newline] + LOOKUP_TAIL
+    return output
 
 
 def send_hint(message, context):
