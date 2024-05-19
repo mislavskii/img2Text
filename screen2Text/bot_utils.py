@@ -11,7 +11,7 @@ results_dict = {}  # store bot recognition results
 # https://www.youtube.com/watch?v=9L77QExPmI0
 logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
                     filename='bot.log', encoding='utf-8',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \

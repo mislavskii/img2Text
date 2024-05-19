@@ -102,7 +102,8 @@ def simulated_error(update: Update, context: CallbackContext):
 def error_handler(update: Update, context: CallbackContext):
     """Handle errors raised by handlers."""
     logger.info(f'error handler invoked in relation to {update.message.text}')
-    logger.error(f"Update {update} \n\tcaused error: {context.error}")
+    # logger.error(f"Update {update} \n\t caused error: {context.error}")
+    logger.error(f'from context: {context.error}\n', exc_info=True, stack_info=True)
 
 
 def main() -> None:
