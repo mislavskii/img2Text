@@ -164,7 +164,9 @@ def do_lookup(message, context, word):
                              )
     logger.info(f'notification sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     x = dlp()
-    x.lookup(word)
+    if not x.lookup(word):
+        send_failure_note(message, context)
+        return
     output = trim_output(x.output_markdown(), MAX_LENGTH)
     logger.info(f'markdown output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
