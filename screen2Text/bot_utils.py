@@ -4,7 +4,7 @@ from io import BytesIO
 import requests as rq
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 
-from screen2text import DictLookup as dlp
+from screen2text import DictLookup as dlp, tb_logger
 
 results_dict = {}  # store bot recognition results
 
@@ -14,14 +14,13 @@ logging.basicConfig(format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-tb_logger = logging.getLogger(f'{__name__}_tb_logger')
+tb_logger.name = f'{__name__}_tb_logger'
+tb_logger.handlers.clear()
 exception_handler = logging.FileHandler(f'logs/{__name__}_exception.log', encoding='utf-8')
 exception_handler.setLevel(logging.ERROR)
-exception_formatter = logging.Formatter('%(asctime)s [%(name)s] %(levelname)s: %(message)s\n%(exc_info)s')
+exception_formatter = logging.Formatter('\n%(asctime)s [%(name)s] %(levelname)s: %(message)s\n%(exc_info)s')
 exception_handler.setFormatter(exception_formatter)
 tb_logger.addHandler(exception_handler)
-tb_logger.propagate = False
-
 
 START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \
                 '\n\nCurrent experimental implementation is built around Thai language drawing on Thai-based [Longdo ' \

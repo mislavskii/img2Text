@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 tb_logger = logging.getLogger(f'{__name__}_tb_logger')
 exception_handler = logging.FileHandler(f'logs/{__name__}_exception.log', encoding='utf-8')
 exception_handler.setLevel(logging.ERROR)
-exception_formatter = logging.Formatter('%(asctime)s [%(name)s] %(levelname)s: %(message)s\n%(exc_info)s')
+exception_formatter = logging.Formatter('\n%(asctime)s [%(name)s] %(levelname)s: %(message)s\n%(exc_info)s')
 exception_handler.setFormatter(exception_formatter)
 tb_logger.addHandler(exception_handler)
 tb_logger.propagate = False
