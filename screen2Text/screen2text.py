@@ -247,7 +247,7 @@ class DictLookup(ClipImg2Text):
         self.soup = None
         self.word = word
         logger.info(f'Looking up {word}... ')
-        response = self.retry_or_none(rq.get, 3, 1, self.dic_url + word, timeoutx=15)
+        response = self.retry_or_none(rq.get, 3, 1, self.dic_url + word, timeout=15)
         if not response or response.status_code != 200:
             logger.warning("Couldn't fetch.")
             return False
@@ -341,7 +341,7 @@ class DictLookup(ClipImg2Text):
         else:
             try:
                 self.lookup(self.suggestions[int(word)][0])
-            except:
+            except TypeError:
                 self.lookup(word)
         if output == 'html' and self.soup:
             self.output_html()
