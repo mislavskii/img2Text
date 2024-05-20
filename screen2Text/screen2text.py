@@ -217,12 +217,10 @@ class DictLookup(ClipImg2Text):
     @staticmethod
     def retry_or_none(func, attempts: int, seconds: int | float, *args, **kwargs):
         """
-        Tries to call a function repeatedly until success, logging error on exception. If no logger, MUST be `None`,
-        and an `*` will be printed out on each retry, with no line break.
+        Tries to call a function repeatedly until success or exhaustion of attempts, logging error on exception.
         :param func: function to call
         :param attempts: total number of calls
-        :param seconds: interval between repeated calls
-        :param logger: logger instance if available, otherwise must be None (or it will blow up)
+        :param seconds: wait time before next call
         :param args: arguments for the called function
         :param kwargs: keyword arguments for the called function
         :return: whatever the called function should return or None in case of ultimate failure
