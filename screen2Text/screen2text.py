@@ -341,7 +341,7 @@ class DictLookup(ClipImg2Text):
         else:
             try:
                 self.lookup(self.suggestions[int(word)][0])
-            except TypeError:
+            except:
                 self.lookup(word)
         if output == 'html' and self.soup:
             self.output_html()
