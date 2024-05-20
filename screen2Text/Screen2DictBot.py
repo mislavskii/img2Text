@@ -6,14 +6,18 @@ from bot_utils import *
 
 
 def start(update: Update, context: CallbackContext) -> None:
-    logger.info(f'/start called by {update.message.from_user.full_name}')
-    sent = context.bot.send_message(
-            update.message.from_user.id,
-            START_MESSAGE,
-            parse_mode=ParseMode.MARKDOWN
-        )
-    logger.info(f'start message sent to {update.message.from_user.full_name}'
-                ) if sent else logger.warning(f'failed sending start message to {update.message.from_user.full_name}')
+    message = update.message
+    logger.info(f'/start called by {message.from_user.full_name}')
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
+                             message.from_user.id,
+                             START_MESSAGE,
+                             parse_mode=ParseMode.MARKDOWN
+                             )
+    if sent:
+        logger.info(f'start message sent to {message.from_user.full_name}')
+    else:
+        logger.warning(f'failed sending start message to {message.from_user.full_name}')
+        send_failure_note(message, context)
 
 
 def service(update: Update, context: CallbackContext) -> None:
