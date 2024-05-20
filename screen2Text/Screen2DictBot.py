@@ -43,7 +43,7 @@ def service(update: Update, context: CallbackContext) -> None:
                 send_rejection_note(message, context)
                 return
         logger.info(f'loading {file.file_path}')
-        r = dlp.retry_or_none(rq.get, 3, 1, logger, file.file_path, timeout=30)
+        r = dlp.retry_or_none(rq.get, 3, 1, file.file_path, timeout=30)
         if not r:
             send_failure_note(message, context)
             return
@@ -101,9 +101,9 @@ def simulated_error(update: Update, context: CallbackContext):
 
 def error_handler(update: Update, context: CallbackContext):
     """Handle errors raised by handlers."""
-    logger.info(f'error handler invoked in relation to {update.message.text}')
-    # logger.error(f"Update {update} \n\t caused error: {context.error}")
-    logger.error(f'from context: {context.error}\n', exc_info=True, stack_info=True)
+    logger.info(f'error handler invoked in relation to {update.message.text if update else None}')
+    logger.error(f"Update {update.update_id if update else None} caused error: {context.error}")
+    tb_logger.error(context.error, exc_info=True)
 
 
 def main() -> None:

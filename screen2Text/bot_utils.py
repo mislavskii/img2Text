@@ -9,10 +9,19 @@ from screen2text import DictLookup as dlp
 results_dict = {}  # store bot recognition results
 
 # https://www.youtube.com/watch?v=9L77QExPmI0
-logging.basicConfig(format='%(asctime)s - %(levelname)s: %(message)s',
-                    filename='bot.log', encoding='utf-8',
+logging.basicConfig(format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+                    filename=f'logs/{__name__}.log', encoding='utf-8',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+tb_logger = logging.getLogger(f'{__name__}_tb_logger')
+exception_handler = logging.FileHandler(f'logs/{__name__}_exception.log', encoding='utf-8')
+exception_handler.setLevel(logging.ERROR)
+exception_formatter = logging.Formatter('%(asctime)s [%(name)s] %(levelname)s: %(message)s\n%(exc_info)s')
+exception_handler.setFormatter(exception_formatter)
+tb_logger.addHandler(exception_handler)
+tb_logger.propagate = False
+
 
 START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \
                 '\n\nCurrent experimental implementation is built around Thai language drawing on Thai-based [Longdo ' \
@@ -52,7 +61,7 @@ SECOND_MENU_MARKUP = InlineKeyboardMarkup([
 
 
 def send_compressed_confirmation(message, context):
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'Loading compressed image from server...'
                              )
@@ -61,7 +70,7 @@ def send_compressed_confirmation(message, context):
 
 
 def send_uncompressed_confirmation(message, context):
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'Loading uncompressed image file from server...'
                              )
@@ -70,7 +79,7 @@ def send_uncompressed_confirmation(message, context):
 
 
 def send_processing_note(message, context):
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'File loaded. Attempting recognition...'
                              )
@@ -80,7 +89,7 @@ def send_processing_note(message, context):
 
 def send_rejection_note(message, context):
     logger.info('unsupported file extension, sending rejection note...')
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'File could not be accepted: unexpected type based on extension.'
                              )
@@ -89,7 +98,7 @@ def send_rejection_note(message, context):
 
 
 def send_failure_note(message, context):
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'Something went wrong... Please consider trying one more time or move on.'
                              )
@@ -126,7 +135,7 @@ def generate_choices(suggestions):
 
 def send_choices(message, context, choices):
     logger.info(f'sending choices to {message.from_user.full_name}')
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              choices
                              )
@@ -149,7 +158,7 @@ def obtain_word(message):
 
 def do_lookup(message, context, word):
     logger.info(f'got a word to look up, initiating lookup for {word}')
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              f'looking up {word} ...'
                              )
@@ -158,7 +167,7 @@ def do_lookup(message, context, word):
     x.lookup(word)
     output = trim_output(x.output_markdown(), MAX_LENGTH)
     logger.info(f'markdown output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              output,
                              parse_mode=ParseMode.MARKDOWN,
@@ -168,7 +177,7 @@ def do_lookup(message, context, word):
     if not sent:
         output = trim_output(x.output_plain(), MAX_LENGTH)
         logger.info(f'plain output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
-        sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+        sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                                  message.from_user.id,
                                  output,
                                  timeout=15
@@ -189,7 +198,7 @@ def trim_output(output: str, max_length: int) -> str:
 
 def send_hint(message, context):
     logger.info('no meaningful action could be taken based on the message text, sending hint...')
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              HINT_MESSAGE
                              )
@@ -199,7 +208,7 @@ def send_hint(message, context):
 
 def send_baffled(message, context):
     logger.info(f'unknown matter encountered in the message, sending baffled note...')
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1, logger,
+    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'What is it?'
                              )

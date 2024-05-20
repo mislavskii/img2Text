@@ -1,4 +1,6 @@
 /sipSongPanNa/pages/
 /screen2Text/bims/
 /screen2Text/bot_config.py
-/screen2Text/bot.log
+/screen2Text/logs/bot.log
+/screen2Text/logs/
+/screen2Text/arx/

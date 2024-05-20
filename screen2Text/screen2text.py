@@ -14,6 +14,18 @@ import os
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
+# logging.basicConfig(format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+#                     filename=f'logs/{__name__}.log', encoding='utf-8',
+#                     level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+tb_logger = logging.getLogger(f'{__name__}_tb_logger')
+exception_handler = logging.FileHandler(f'logs/{__name__}_exception.log', encoding='utf-8')
+exception_handler.setLevel(logging.ERROR)
+exception_formatter = logging.Formatter('%(asctime)s [%(name)s] %(levelname)s: %(message)s\n%(exc_info)s')
+exception_handler.setFormatter(exception_formatter)
+tb_logger.addHandler(exception_handler)
+tb_logger.propagate = False
 
 class ClipImg2Text:
     config_codes = """  0    Orientation and script detection (OSD) only.
@@ -123,7 +135,7 @@ class ClipImg2Text:
 
     def threads_recognize(self, lang, kind=None):
         """Recognizing the image, both original and binarized, in a range of psm values as per :kind:,
-        appying a range of threshold skews as defined in `fan_recognize` run in a separate thread 
+        applying a range of threshold skews as defined in `fan_recognize` run in a separate thread
         for each psm value 
         """
         self.fan_binarize()
@@ -203,7 +215,7 @@ class DictLookup(ClipImg2Text):
     dic_url = 'https://dict.longdo.com/search/'
 
     @staticmethod
-    def retry_or_none(func, attempts: int, seconds: int | float, logger: logging.Logger | None, *args, **kwargs):
+    def retry_or_none(func, attempts: int, seconds: int | float, *args, **kwargs):
         """
         Tries to call a function repeatedly until success, logging error on exception. If no logger, MUST be `None`,
         and an `*` will be printed out on each retry, with no line break.
@@ -219,11 +231,9 @@ class DictLookup(ClipImg2Text):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                if logger:
-                    logger.exception(e, exc_info=True, stack_info=True)
-                    logger.info('retrying...')
-                else:
-                    print(' * ', end='')
+                logger.error(e)
+                tb_logger.exception(e)
+                logger.info('retrying...')
                 time.sleep(seconds)
                 continue
         return None
@@ -235,8 +245,8 @@ class DictLookup(ClipImg2Text):
 
     def lookup(self, word):
         self.word = word
-        print(f'Looking up {word}... ')
-        response = self.retry_or_none(rq.get, 3, 1, None, self.dic_url + word, timeout=15)
+        logger.info(f'Looking up {word}... ')
+        response = self.retry_or_none(rq.get, 3, 1, self.dic_url + word, timeout=15)
         if not response or response.status_code != 200:
             print("Couldn't fetch.")
             return
