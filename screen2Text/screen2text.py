@@ -244,14 +244,16 @@ class DictLookup(ClipImg2Text):
         self.soup = None
 
     def lookup(self, word):
+        self.soup = None
         self.word = word
         logger.info(f'Looking up {word}... ')
-        response = self.retry_or_none(rq.get, 3, 1, self.dic_url + word, timeout=15)
+        response = self.retry_or_none(rq.get, 3, 1, self.dic_url + word, timeoutx=15)
         if not response or response.status_code != 200:
-            print("Couldn't fetch.")
-            return
+            logger.warning("Couldn't fetch.")
+            return False
         response.encoding = 'utf-8'
         self.soup = bs(response.text, features="lxml")
+        return True
 
     def output_html(self):
         headers = self.soup.find_all('td', attrs={'class': 'search-table-header'})
@@ -273,6 +275,8 @@ class DictLookup(ClipImg2Text):
         display(HTML(style + content))
 
     def output_markdown(self):
+        if not self.soup:
+            return ''
         output = []
         headers = self.soup.find_all('td', attrs={'class': 'search-table-header'})
         tables = self.soup.find_all('table', attrs={'class': 'search-result-table'})
@@ -339,7 +343,7 @@ class DictLookup(ClipImg2Text):
                 self.lookup(self.suggestions[int(word)][0])
             except:
                 self.lookup(word)
-        if output == 'html':
+        if output == 'html' and self.soup:
             self.output_html()
 
 
