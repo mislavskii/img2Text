@@ -1,16 +1,15 @@
 import logging
+import os
+import threading
 import time
-
-from PIL import ImageGrab, Image
+from datetime import datetime as dt
 import pytesseract
 import requests as rq
-from bs4 import BeautifulSoup as bs
-from IPython.display import display
 from IPython.display import HTML
-import threading
-from datetime import datetime as dt
-from pythainlp import spell, correct
-import os
+from IPython.display import display
+from PIL import ImageGrab, Image
+from bs4 import BeautifulSoup as bs
+from pythainlp import correct
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 

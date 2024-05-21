@@ -22,20 +22,22 @@ exception_formatter = logging.Formatter('\n%(asctime)s [%(name)s] %(levelname)s:
 exception_handler.setFormatter(exception_formatter)
 tb_logger.addHandler(exception_handler)
 
-START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script. ' \
-                '\n\nCurrent experimental implementation is built around Thai language drawing on Thai-based [Longdo ' \
-                'Dictionary](https://dict.longdo.com/index.php) in [Python](https://www.python.org/) programming ' \
-                'language using [python-telegram-bot](https://github.com/python-telegram-bot) library as well as [' \
-                'Tesseract-OCR](https://tesseract-ocr.github.io/tessdoc/Installation.html) in ' \
-                '[pytesseract](https://pypi.org/project/pytesseract/) wrapper, [NECTEC Lexitron](' \
+START_MESSAGE = 'Hello! To start using the service, please send a tightly cropped image of a word in Thai script or ' \
+                'enter lookup and the word to look up (ex.: lookup เกล้า)' \
+                '\n\nCurrent experimental implementation is focused on Thai language drawing on Thai-based [Longdo ' \
+                'Dictionary](https://dict.longdo.com/index.php). It is built in [Python](https://www.python.org/) ' \
+                'programming language using [python-telegram-bot](https://github.com/python-telegram-bot) library and' \
+                '[Tesseract-OCR](https://tesseract-ocr.github.io/tessdoc/Installation.html) in ' \
+                '[pytesseract](https://pypi.org/project/pytesseract/) wrapper, as well as [NECTEC Lexitron](' \
                 'https://www.nectec.or.th/innovation/innovation-software/lexitron.html) and [PyThaiNLP](' \
                 'https://pythainlp.github.io/) for spelling verification, [Pillow](' \
                 'https://github.com/python-pillow/Pillow/) for image processing, [requests](' \
                 'https://requests.readthedocs.io) and [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) ' \
                 'for web content processing, and others. Many thanks to creators and maintainers of all these ' \
-                'resources!\nFeel free to [contact the developer](https://t.me/jornjat) with any inquiries.'
+                'resources!\nFeel free to [contact the developer](https://t.me/jornjat) with any inquiries.\n\n'
 HINT_MESSAGE = 'Please submit a tightly cropped image of a word in Thai script, enter suggestion number if known, ' \
-               'or enter a word preceded by \"lookup\" and a whitespace to look it up in the dictionary.'
+               'or enter a word preceded by \"lookup\" and a whitespace (ex.: lookup เกล้า) to look it up in the dictionary.' \
+               '\n\n [contact the sentient being behind this bot](https://t.me/jornjat)'
 MAX_LENGTH = 4096
 LOOKUP_TAIL = '...\nclick the link below for more'
 FAILURE = 'something went wrong.'
@@ -118,7 +120,7 @@ def do_recognize(r: rq.Response, message, context):
     send_processing_note(message, context)
     x.threads_recognize(lang='tha', kind='line')
     x.generate_suggestions()
-    logger.info(f'image recognition produced  {len(x.suggestions)} suggestion(s)')
+    logger.info(f'image recognition produced {len(x.suggestions)} suggestion(s)')
     return x.suggestions
 
 
@@ -201,7 +203,8 @@ def send_hint(message, context):
     logger.info('no meaningful action could be taken based on the message text, sending hint...')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
-                             HINT_MESSAGE
+                             HINT_MESSAGE,
+                             parse_mode=ParseMode.MARKDOWN
                              )
     logger.info(f'hint message sent to {message.from_user.full_name}' if sent else FAILURE)
     return sent

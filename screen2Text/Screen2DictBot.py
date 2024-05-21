@@ -7,7 +7,7 @@ from bot_utils import *
 
 def start(update: Update, context: CallbackContext) -> None:
     message = update.message
-    logger.info(f'/start called by {message.from_user.full_name}')
+    logger.info(f'/start command issued by {message.from_user.full_name}')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              START_MESSAGE,
