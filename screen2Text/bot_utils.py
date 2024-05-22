@@ -9,6 +9,7 @@ from screen2text import DictLookup as dlp, tb_logger
 results_dict = {}  # store bot recognition results
 
 # https://www.youtube.com/watch?v=9L77QExPmI0
+# TODO: Make it roll
 logging.basicConfig(format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
                     filename=f'logs/{__name__}.log', encoding='utf-8',
                     level=logging.INFO)
@@ -62,6 +63,13 @@ SECOND_MENU_MARKUP = InlineKeyboardMarkup([
 
 
 def send_compressed_confirmation(message, context):
+    """
+    Notifies user that submitted image is compressed and being pulled into the system for processing, retrying once
+    in case of initial failure.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :returns: sent message in case of success, None otherwise.
+    """
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'Loading compressed image from server...'
@@ -71,6 +79,13 @@ def send_compressed_confirmation(message, context):
 
 
 def send_uncompressed_confirmation(message, context):
+    """
+    Notifies user that submitted image is being pulled into the system for processing with no compression,
+    retrying once in case of initial failure.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :returns: sent message in case of success, None otherwise.
+    """
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'Loading uncompressed image file from server...'
@@ -80,6 +95,13 @@ def send_uncompressed_confirmation(message, context):
 
 
 def send_processing_note(message, context):
+    """
+    Notifies user that submitted image has been successfully loaded and OCR is attempted on it,
+    retrying once in case of initial failure.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :returns: sent message in case of success, None otherwise.
+    """
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'File loaded. Attempting recognition...'
@@ -89,16 +111,31 @@ def send_processing_note(message, context):
 
 
 def send_rejection_note(message, context):
+    """
+    Notifies user that submitted object could not be processed due to unsupported type/extension,
+    retrying once in case of initial failure.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :returns: sent message in case of success, None otherwise.
+    """
     logger.info('unsupported file extension, sending rejection note...')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
-                             'File could not be accepted: unexpected type based on extension.'
+                             'File could not be accepted: unexpected type based on extension. '
+                             'Currently supported formats are png and jpg.'
                              )
     logger.info(f'rejection note sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     return sent
 
 
 def send_failure_note(message, context):
+    """
+    Notifies user that requested action could not be successfully accomplished,
+    retrying once in case of initial failure.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :returns: sent message in case of success, None otherwise.
+    """
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              'Something went wrong... Please consider trying one more time or move on.'
@@ -107,13 +144,21 @@ def send_failure_note(message, context):
     return sent
 
 
-def do_recognize(r: rq.Response, message, context):
+def do_recognize(r: rq.Response, message, context) -> list[tuple[str, float]]:
+    """
+    Pulls response content into PIL Image object, runs recognition and generates suggestions with
+    provisional confidence rating as a list of tuples.
+    :param r: response object obtained from call to the telegram API using requests library.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :return: a list of rated suggestions as tuples or empty list in case of failure.
+    """
     x = dlp()
     try:
         x.load_image(BytesIO(r.content))
     except Exception as e:
-        logger.info("Couldn't open the file")
-        logger.error(e)
+        logger.error(f"Couldn't open the file: {e}")
+        tb_logger.exception(e)
         send_failure_note(message, context)
         return []
     logger.info('initiating recognition...')
@@ -124,7 +169,13 @@ def do_recognize(r: rq.Response, message, context):
     return x.suggestions
 
 
-def generate_choices(suggestions):
+def generate_choices(suggestions: list[tuple[str, float]]) -> str:
+    """
+    Builds a message with numbered suggested recognition results for user to choose which one to look up
+    or informs them of ultimate failure to produce any.
+    :param suggestions: a list of suggestion tuples returned by `do_recognize`.
+    :return: text to be sent to user.
+    """
     logger.info('generating choices')
     choices = 'Choose suggestion number to look up:\n' if suggestions \
         else 'No meaningful recognition results could be produced.'
@@ -134,16 +185,32 @@ def generate_choices(suggestions):
     return choices
 
 
-def send_choices(message, context, choices):
+def send_choices(message, context, choices: str):
+    """
+    Sends the message with numbered suggested recognition results for user to choose which one to look up
+    or informs them of ultimate failure to produce any.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :param choices: text of the message to be sent.
+    :returns: sent message in case of success, None otherwise.
+    """
     logger.info(f'sending choices to {message.from_user.full_name}')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              choices
                              )
     logger.info('choices sent successfully' if sent else FAILURE)
+    return sent
 
 
-def obtain_word(message):
+def obtain_word(message) -> str:
+    """
+    Checks the incoming message text to see if it is a digit - which is then used as index to get corresponding word
+    from the list of suggestions, or a lookup request in which case the word to look up
+    is extracted right from the text.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :return: a word to look up.
+    """
     word = ''
     text = message.text
     if text.isdigit():
@@ -157,7 +224,15 @@ def obtain_word(message):
     return word
 
 
-def do_lookup(message, context, word):
+def do_lookup(message, context, word: str):
+    """
+    Performs lookup for the word in online dictionary, prepares resulting output and sends it to user as
+    formatted markdown or plain text as a fallback option.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :param word: a word to look up.
+    :return: sent message if anything managed to get through (albeit failure note) or None in case of ultimate failure.
+    """
     logger.info(f'got a word to look up, initiating lookup for {word}')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
@@ -166,9 +241,8 @@ def do_lookup(message, context, word):
     logger.info(f'notification sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     x = dlp()
     if not x.lookup(word):
-        send_failure_note(message, context)
-        return
-    output = trim_output(x.output_markdown(), MAX_LENGTH)
+        return send_failure_note(message, context)
+    output = trim_output(x.output_markdown())
     logger.info(f'markdown output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
@@ -178,7 +252,7 @@ def do_lookup(message, context, word):
                              )
     logger.info(f'and sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     if not sent:
-        output = trim_output(x.output_plain(), MAX_LENGTH)
+        output = trim_output(x.output_plain())
         logger.info(f'plain output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
         sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                                  message.from_user.id,
@@ -188,11 +262,18 @@ def do_lookup(message, context, word):
         logger.info(f'and sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     if not sent:
         send_failure_note(message, context)
-    return
+    return sent
 
 
-def trim_output(output: str, max_length: int) -> str:
-    if len(output) > max_length:
+def trim_output(output: str) -> str:
+    """
+    Checks if the output text size exceeds the maximum length allowed by Telegram and, if true, trims it neatly to the
+    last fitting newline, also appending an endnote informing user that more content is available at the dictionary
+    webpage and encouraging them to follow the link.
+    :param output: the output text.
+    :return: trimmed output or unchanged if max length was not exceeded.
+    """
+    if len(output) > MAX_LENGTH:
         output = output[:4096 - len(LOOKUP_TAIL)]
         last_newline = output.rfind('\n')
         return output[:last_newline] + LOOKUP_TAIL
@@ -200,6 +281,13 @@ def trim_output(output: str, max_length: int) -> str:
 
 
 def send_hint(message, context):
+    """
+    In case no action could be taken based on the incoming message, sends user a hint on how to use the service,
+    retrying once on initial failure.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :returns: sent message in case of success, None otherwise.
+    """
     logger.info('no meaningful action could be taken based on the message text, sending hint...')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
@@ -211,6 +299,13 @@ def send_hint(message, context):
 
 
 def send_baffled(message, context):
+    """
+    In case incoming message cannot be parsed in any meaningful way, sends the user a request for clarification,
+    retrying once on initial failure.
+    :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
+    :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
+    :returns: sent message in case of success, None otherwise.
+    """
     logger.info(f'unknown matter encountered in the message, sending baffled note...')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,

@@ -5,7 +5,11 @@ from bot_config import token
 from bot_utils import *
 
 
+# TODO: Testing
 def start(update: Update, context: CallbackContext) -> None:
+    """
+    Start command handler.
+    """
     message = update.message
     logger.info(f'/start command issued by {message.from_user.full_name}')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
@@ -18,11 +22,15 @@ def start(update: Update, context: CallbackContext) -> None:
     else:
         logger.warning(f'failed sending start message to {message.from_user.full_name}')
         send_failure_note(message, context)
+    return
 
 
 def service(update: Update, context: CallbackContext) -> None:
     """
-    This function is added to the dispatcher as a general handler for messages coming from the Bot API
+    This function is added to the dispatcher as a general handler for messages coming from the Bot API.
+    If message has text and a word to look up can be obtained from it, dictionary lookup is performed;
+    If message has image, compressed or uncompressed, that image is being processed;
+    If none of the above, baffled message is issued to the original sender.
     """
     message = update.message
     if message.text:
@@ -104,7 +112,7 @@ def simulated_error(update: Update, context: CallbackContext):
 
 
 def error_handler(update: Update, context: CallbackContext):
-    """Handle errors raised by handlers."""
+    """Handles errors raised by handlers."""
     logger.info(f'error handler invoked in relation to {update.message.text if update else None}')
     logger.error(f"Update {update.update_id if update else None} caused error: {context.error}")
     tb_logger.error(context.error, exc_info=True)
