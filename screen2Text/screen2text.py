@@ -83,7 +83,7 @@ class ClipImg2Text:
 
     def binarize(self, skew=1.0):
         im = self.im.copy().convert("L")
-        lightness = len(im.getdata()) / sum(im.getdata())
+        lightness = len(im.getdata()) / sum(im.getdata())  # this may result in ZeroDivisionError
         threshold = sum(im.getextrema()) / 2 * skew
         xs, ys = im.size
         for x in range(xs):
@@ -97,7 +97,7 @@ class ClipImg2Text:
 
     def fan_binarize(self):
         self.bims = {}
-        for skew in range(60, 140, 5):
+        for skew in range(60, 155, 5):
             bim = self.binarize(skew / 100)
             bim.save(f'bims/{skew}.png')
             self.bims[skew] = bim
@@ -137,6 +137,7 @@ class ClipImg2Text:
         applying a range of threshold skews as defined in `fan_recognize` run in a separate thread
         for each psm value 
         """
+        self.kind = kind
         self.fan_binarize()
         lang = lang
         self.out_texts.clear()
@@ -197,7 +198,13 @@ class ClipImg2Text:
         display(self.im)
         for key, text in sorted(self.out_texts.items(), key=lambda item: item[0]):
             if key <= 13:
-                print(f'{key}:', text.replace('\n', ''), end=', ')
+                if self.kind in ('word', 'line', None):
+                    text = text.replace('\n', '')
+                    end = ', '
+                else:
+                    text = '\n' * 2 + text
+                    end = '\n' * 2
+                print(f'{key}:', text, end=end)
         print()
 
         print(f"\n{self.im.getextrema()} -> {self.im.convert('L').getextrema()}")
@@ -206,7 +213,13 @@ class ClipImg2Text:
             display(image)
             for key, text in sorted(self.out_texts.items(), key=lambda item: item[0]):
                 if str(key).endswith(str(skew)):
-                    print(f'{key // 1000}:', text.replace('\n', ''), end=', ')
+                    if self.kind in ('word', 'line', None):
+                        text = text.replace('\n', '')
+                        end = ', '
+                    else:
+                        text = '\n' * 2 + text
+                        end = '\n' * 2
+                    print(f'{key}:', text, end=end)
             print()
 
 

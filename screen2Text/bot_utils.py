@@ -163,7 +163,14 @@ def do_recognize(r: rq.Response, message, context) -> list[tuple[str, float]]:
         return []
     logger.info('initiating recognition...')
     send_processing_note(message, context)
-    x.threads_recognize(lang='tha', kind='line')
+    try:
+        x.threads_recognize(lang='tha', kind='line')
+    except Exception as e:
+        logger.error(f"recognition error: {e}")
+        tb_logger.exception(e)
+        send_failure_note(message, context)
+        raise RuntimeError
+        # return []
     x.generate_suggestions()
     logger.info(f'image recognition produced {len(x.suggestions)} suggestion(s)')
     return x.suggestions
