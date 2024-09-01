@@ -192,6 +192,11 @@ class ClipImg2Text:
                     self.suggestions.append((corrected, -1))
         self.suggestions.sort(key=lambda item: item[1], reverse=True)
 
+    def generate_text_suggestions(self):
+        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item])
+        out_text_freqs.sort(key=lambda item: item[1], reverse=True)
+        self.suggestions = out_text_freqs[:7]
+
     def inspect_results(self):  # TODO: Adapt for blocks
         if not self.im:
             return
