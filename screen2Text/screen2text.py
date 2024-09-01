@@ -168,7 +168,7 @@ class ClipImg2Text:
                         if text in entry:
                             self.validated_words[key] = text
 
-    def generate_suggestions(self):
+    def generate_word_suggestions(self):
         self.validate_words()
         self.suggestions = self.get_freqs(self.validated_words.values())
         out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item and '\n' not in item])
@@ -332,7 +332,7 @@ class DictLookup(ClipImg2Text):
         start = dt.now()
         self.threads_recognize(lang, kind)
         print(f'Done in {dt.now() - start}')
-        self.generate_suggestions()
+        self.generate_word_suggestions()
         if not self.suggestions:
             print('No meaningful recognition results could be obtained from the image')
             return

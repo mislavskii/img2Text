@@ -171,7 +171,7 @@ def do_recognize(r: rq.Response, message, context) -> list[tuple[str, float]]:
         send_failure_note(message, context)
         raise RuntimeError
         # return []
-    x.generate_suggestions()
+    x.generate_word_suggestions()
     logger.info(f'image recognition produced {len(x.suggestions)} suggestion(s)')
     return x.suggestions
 
@@ -226,7 +226,7 @@ def obtain_word(message) -> str:
             result_index = int(message.text)
             if result_index < len(their_results):
                 word = their_results[result_index][0]
-    if message.text.lower().startswith('lookup') and len(message.text.split()) == 2:
+    if text.lower().startswith('lookup') and len(message.text.split()) == 2:
         word = message.text.split()[-1]
     return word
 
