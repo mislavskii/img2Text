@@ -92,7 +92,7 @@ def small(im, factor=12):
 
 
 # noinspection PyShadowingNames
-def binarize_as_array(im, threshold=None, skew=1, echo=False):
+def binarize_as_array(im, threshold=None, skew=1.0, echo=False):
     """Takes a PIL image and changes each pixel value to False (black) or True (white) over the :threshold:
     :image: PIL image object
     :threshold: a value over which to binarize. If not specified, set automatically with
@@ -104,7 +104,7 @@ def binarize_as_array(im, threshold=None, skew=1, echo=False):
     if echo:
         print(f' - thresholding method: {threshold}', end=', ')
     if not threshold:
-        threshold = int((np.min(array) + np.max(array)) / 2 * skew)  # calculating the base threshold
+        threshold = (int((np.min(array) + np.max(array)) / 2) * skew)  # calculating the base threshold
     elif threshold == 'min':
         threshold = threshold_minimum(array)
     elif threshold == 'otsu':
