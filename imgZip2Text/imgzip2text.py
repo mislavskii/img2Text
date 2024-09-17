@@ -426,21 +426,7 @@ def segment(im,
 # TODO: Teach it to avoid pictures but keep the sideways text lines
 
 
-def recognize_by_lines(im, boxes):
-    """Recognizes text from each box as a single line and returns a list of strings"""
-    text_lines = []
-    lang = input('Recognition language(s): ')
-    if not lang:
-        lang = 'tha'
-    for box in boxes:
-        line = pytesseract.image_to_string(im.crop(box), config='--psm 7', lang=lang)
-        text_lines.append(line)
-
-    return text_lines
-
-
 class Image2Text:
-    text = None
 
     def __init__(self, image: Image, pre=False, binarize=False):
         """Loads an image file to be recognized.
@@ -448,11 +434,12 @@ class Image2Text:
         :pre: loads image with preprocessing if selected, default False
         :bin: loads image with binarization if selected, default False
         """
+        self.bim = None
         self.boxes = []
         self.boxed_im = None
-        self.lines = []
         self.crops = []
-        self.bim = None
+        self.lines = []
+        self.text = ''
         if pre:
             print('Loading image with full preprocessing')
             self.im = preprocess(image)
@@ -473,6 +460,11 @@ class Image2Text:
         print('Recognition with no segmentation completed.')
 
     def recognize_by_lines(self):
+        """
+        Gets bounding boxes for each line of text superimposing them on the image to keep separately as `self.boxed_im`,
+        crops each box from the image appending it to `self.crops`, and recognizes
+        as a single line appending the obtained string to `self.lines`
+        """
         self.boxed_im, self.boxes = segment(self.bim)
         lang = input('Recognition language(s): ')
         if not lang:
