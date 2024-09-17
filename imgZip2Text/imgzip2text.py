@@ -15,6 +15,7 @@ pytesseract.pytesseract.tesseract_cmd = tess_path
 # TESSDATA_PREFIX = r'C:/Program Files/Tesseract-OCR/tessdata'
 TESSDATA_PREFIX = 'C:/Users/User/AppData/Local/Tesseract-OCR/tessdata'
 
+
 # NOTATION NOTE -  as applied to variable/parameter names in the code below:
 # 'image' refers to a general image file
 # 'im' refers to a PIL image object
@@ -113,7 +114,7 @@ def small(im, factor=12):
 
 
 # noinspection PyShadowingNames
-def binarize_as_array(im, threshold=None, t_factor=2.3):
+def binarize_as_array(im, threshold=None, t_factor=.9):
     """Takes a PIL image in 'L' mode and changes each pixel value to O (black) or 255 (white) over the threshold
     :image: PIL image object :threshold: a value over which to binarize. If not specified, set automatically with
     specified skimage thresholding method or using the t_factor parameter value empirically determined by developer
@@ -122,7 +123,7 @@ def binarize_as_array(im, threshold=None, t_factor=2.3):
     array = np.asarray(im).copy()
     print(f' - thresholding method: {threshold}', end=', ')
     if not threshold:
-        threshold = int((int(np.min(array)) + int(np.max(array))) / t_factor)  # calculating the base threshold
+        threshold = int((int(np.min(array)) + int(np.max(array))) / 2 * t_factor)  # calculating the base threshold
     elif threshold == 'min':
         threshold = threshold_minimum(array)
     elif threshold == 'otsu':
@@ -371,11 +372,12 @@ def preprocess(image, threshold=None):
     im = clean_margins(im)
     return im
 
+
 # TEXT RECOGNITION (WITH TESSERACT)
 
 def segment(im,
             threshold=.0009,  # minimal proportion of black pixels in a row for it to qualify as a dark one
-            gap=2,  # minimal gap between lines of text in pixels
+            gap=1,  # minimal gap between lines of text in pixels
             line_height_cap=0.2  # max height of text line relative to image height (to skip large objects)
             ):
     """returns a list of text line boxes, each as a four-tuple defining x, y for left upper and right bottom corners.
@@ -416,9 +418,10 @@ def segment(im,
         if line[1] - line[0] < im.height * line_height_cap:  # large pictures won't pass
             draw.rectangle(box, fill=None, width=2, outline=0)
             boxes.append(box)
-    im.show()
 
-    return boxes
+    return im, boxes
+
+
 # TODO: Rewrite the **segment** function using numpy array (and some other improvements)
 # TODO: Teach it to avoid pictures but keep the sideways text lines
 
@@ -437,29 +440,31 @@ def recognize_by_lines(im, boxes):
 
 
 class Image2Text:
-    boxes = None
-    lines = None
     text = None
 
-    def __init__(self, image, pre=False, binarize=False):
+    def __init__(self, image: Image, pre=False, binarize=False):
         """Loads an image file to be recognized.
-        :file: path to file or file object
+        :image: PIL Image object
         :pre: loads image with preprocessing if selected, default False
         :bin: loads image with binarization if selected, default False
         """
+        self.boxes = []
+        self.boxed_im = None
+        self.lines = []
+        self.crops = []
+        self.bim = None
         if pre:
-            print('Loading image file with full preprocessing')
+            print('Loading image with full preprocessing')
             self.im = preprocess(image)
         elif binarize:
-            print('Loading image file with binarization only')
-            self.im = binarize_as_array(load_image(image))
+            print('Loading image with binarization only')
+            self.im = binarize_as_array(image)
         else:
-            print('Loading image file with no preprocessing')
-            self.im = load_image(image)
-        self.path = image  # this is dubious!!! will only work with image passed as path, not file object
+            print('Loading image with no preprocessing')
+            self.im = image
 
-    def binarize(self):
-        self.im = binarize_as_array(self.im)
+    def binarize(self, threshold=None, t_factor=1):
+        self.bim = binarize_as_array(self.im.convert('L'), threshold, t_factor)
 
     def recognize_as_is(self, lang=None):
         if not lang:
@@ -468,15 +473,22 @@ class Image2Text:
         print('Recognition with no segmentation completed.')
 
     def recognize_by_lines(self):
-        self.boxes = segment(self.im)
-        self.lines = recognize_by_lines(self.im, self.boxes)  # merge with the next line?
+        self.boxed_im, self.boxes = segment(self.bim)
+        lang = input('Recognition language(s): ')
+        if not lang:
+            lang = 'tha'
+        for box in self.boxes:
+            crop = self.bim.crop(box)
+            self.crops.append(crop)
+            line = pytesseract.image_to_string(crop, config='--psm 7', lang=lang)
+            self.lines.append(line)
         self.text = ''.join(self.lines)
         print('Recognition with segmentation completed.')
 
-    def save_to_file(self):
+    def save_to_file(self, save_path):
         """Saving recognition results to text file named as the image file + txt extension into the same location
         where the original image was"""
-        save_path = self.path + '.txt'
+        save_path = save_path + '.txt'
         with open(save_path, 'w', encoding='utf-8') as file:
             file.write(self.text)
         print(f'saved to {save_path}', end='\n\n')
