@@ -478,8 +478,7 @@ class Image2Text:
         print('Recognition with segmentation completed.')
 
     def save_to_file(self, save_path):
-        """Saving recognition results to text file named as the image file + txt extension into the same location
-        where the original image was"""
+        """Saving recognition results to text file named as per `save_path` + txt extension"""
         save_path = save_path + '.txt'
         with open(save_path, 'w', encoding='utf-8') as file:
             file.write(self.text)
