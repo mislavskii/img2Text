@@ -26,6 +26,7 @@ exception_handler.setFormatter(exception_formatter)
 tb_logger.addHandler(exception_handler)
 tb_logger.propagate = False
 
+
 class ClipImg2Text:
     config_codes = """  0    Orientation and script detection (OSD) only.
       1    Automatic page segmentation with OSD.
@@ -192,8 +193,8 @@ class ClipImg2Text:
                     self.suggestions.append((corrected, -1))
         self.suggestions.sort(key=lambda item: item[1], reverse=True)
 
-    def generate_text_suggestions(self):
-        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item])
+    def generate_line_suggestions(self):
+        out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item and '\n' not in item])
         out_text_freqs.sort(key=lambda item: item[1], reverse=True)
         self.suggestions = out_text_freqs[:7]
 
