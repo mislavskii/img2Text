@@ -136,10 +136,12 @@ def send_failure_note(message, context):
     :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
     :returns: sent message in case of success, None otherwise.
     """
-    sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
-                             message.from_user.id,
-                             'Something went wrong... Please consider trying one more time or move on.'
-                             )
+    sent = dlp.retry_or_none(
+        context.bot.send_message, 2, 1,
+        message.from_user.id,
+        'Something went wrong... Please consider trying one more time '
+        'or notifying @jornjat the maintainer if the error persists.'
+    )
     logger.info(f'failure note sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     return sent
 
@@ -170,8 +172,15 @@ def do_recognize(r: rq.Response, message, context) -> list[tuple[str, float]]:
         tb_logger.exception(e)
         send_failure_note(message, context)
         raise RuntimeError
-        # return []
-    x.generate_word_suggestions()
+    try:
+        x.generate_word_suggestions()
+    except Exception as e:
+        # Error at this point may result from failure to open corpus file
+        # TODO: try to handle it better (place the file more securely?)
+        logger.error(f"error generating suggestions: {e}")
+        tb_logger.exception(e)
+        send_failure_note(message, context)
+        raise RuntimeError
     logger.info(f'image recognition produced {len(x.suggestions)} suggestion(s)')
     return x.suggestions
 
