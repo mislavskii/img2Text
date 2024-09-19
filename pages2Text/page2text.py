@@ -17,7 +17,8 @@ def segment(im,
             gap=1,  # minimal gap between lines of text in pixels
             line_height_cap=0.2  # max height of text line relative to image height (to skip large objects)
             ):
-    """returns a list of text line boxes, each as a four-tuple defining x, y for left upper and right bottom corners.
+    """returns a list of text line boxes, each as a four-tuple defining x, y for left upper and right bottom corners,
+    and the original image with the boxes superimposed on it as a 2-tuple (image, boxes)
     needed dependencies:
     - PIL.Image[,
     - PIL.ImageDraw - only to display image with text boxes on it]"""
