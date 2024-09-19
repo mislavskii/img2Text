@@ -43,7 +43,7 @@ def clean_margins(im):
     return Image.fromarray(array)
 
 
-im = Image.open('resources/IMG_5265.jpg').convert('1', dither=0)
+im = Image.open('../resources/IMG_5265.jpg').convert('1', dither=0)
 
 im = clean_margins(im)
 
