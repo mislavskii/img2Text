@@ -159,9 +159,8 @@ def do_recognize(r: rq.Response, message, context) -> list[tuple[str, float]]:
     try:
         x.load_image(BytesIO(r.content))
     except Exception as e:
-        logger.error(f"Couldn't open the file: {e}")
+        logger.error(f"Couldn't open the image file: {e}")
         tb_logger.exception(e)
-        send_failure_note(message, context)
         return []
     logger.info('initiating recognition...')
     send_processing_note(message, context)
@@ -170,17 +169,8 @@ def do_recognize(r: rq.Response, message, context) -> list[tuple[str, float]]:
     except Exception as e:
         logger.error(f"recognition error: {e}")
         tb_logger.exception(e)
-        send_failure_note(message, context)
-        raise RuntimeError
-    try:
-        x.generate_word_suggestions()
-    except Exception as e:
-        # Error at this point may result from failure to open corpus file
-        # TODO: try to handle it better (place the file more securely?)
-        logger.error(f"error generating suggestions: {e}")
-        tb_logger.exception(e)
-        send_failure_note(message, context)
-        raise RuntimeError
+        return []
+    x.generate_word_suggestions()
     logger.info(f'image recognition produced {len(x.suggestions)} suggestion(s)')
     return x.suggestions
 
@@ -193,8 +183,8 @@ def generate_choices(suggestions: list[tuple[str, float]]) -> str:
     :return: text to be sent to user.
     """
     logger.info('generating choices')
-    choices = 'Choose suggestion number to look up:\n' if suggestions \
-        else 'No meaningful recognition results could be produced.'
+    choices = 'Choose suggestion number to look up:\n' if (
+        suggestions) else 'No meaningful recognition results could be produced.'
     for i in range(0, len(suggestions)):
         option = suggestions[i]
         choices += f'{i} : {option[0]} ({option[1]})\n'
@@ -259,7 +249,10 @@ def do_lookup(message, context, word: str):
     if not x.lookup(word):
         return send_failure_note(message, context)
     output = trim_output(x.output_markdown())
-    logger.info(f'markdown output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
+    logger.info(
+        f'markdown output generated ({output[:128] if len(output) > 128 else output} ...)'
+        .replace('\n', ' ')
+    )
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              output,
@@ -269,7 +262,10 @@ def do_lookup(message, context, word: str):
     logger.info(f'and sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     if not sent:
         output = trim_output(x.output_plain())
-        logger.info(f'plain output generated ({output[:128] if len(output) > 128 else output} ...)'.replace('\n', ' '))
+        logger.info(
+            f'plain output generated ({output[:128] if len(output) > 128 else output} ...)'
+            .replace('\n', ' ')
+        )
         sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                                  message.from_user.id,
                                  output,

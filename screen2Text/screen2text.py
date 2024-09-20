@@ -163,13 +163,17 @@ class ClipImg2Text:
         checks recognition results gathered in out_texts against corpus.
         """
         self.validated_words.clear()
-        with open(self.corpus_path, encoding='utf-8') as corpus:
-            lexicon = corpus.readlines()
-            for key, text in self.out_texts.items():
-                if text and len(text) > 1:
-                    for entry in lexicon:
-                        if text in entry:
-                            self.validated_words[key] = text
+        try:
+            with open(self.corpus_path, encoding='utf-8') as corpus:
+                lexicon = corpus.readlines()
+                for key, text in self.out_texts.items():
+                    if text and len(text) > 1:
+                        for entry in lexicon:
+                            if text in entry:
+                                self.validated_words[key] = text
+        except Exception as e:
+            logger.error(f"error accessing corpus: {e}")
+            tb_logger.exception(e)
 
     def generate_word_suggestions(self):
         self.validate_words()
@@ -195,7 +199,7 @@ class ClipImg2Text:
                     self.suggestions.append((corrected, -1))
         self.suggestions.sort(key=lambda item: item[1], reverse=True)
 
-    def generate_line_suggestions(self):
+    def generate_line_suggestions(self):  # TODO: add to the bot?
         out_text_freqs = self.get_freqs([item for item in self.out_texts.values() if item and '\n' not in item])
         out_text_freqs.sort(key=lambda item: item[1], reverse=True)
         self.suggestions = out_text_freqs[:7]
