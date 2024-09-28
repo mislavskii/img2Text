@@ -217,36 +217,36 @@ def obtain_word(message) -> str:
     :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
     :return: a word to look up.
     """
-    word = ''
+    query = ''
     text = message.text
     if text.isdigit():
         if message.from_user.id in results_dict.keys():
             their_results = results_dict[message.from_user.id]
             result_index = int(message.text)
             if result_index < len(their_results):
-                word = their_results[result_index][0]
-    if text.lower().startswith('lookup') and len(message.text.split()) == 2:
-        word = message.text.split()[-1]
-    return word
+                query = their_results[result_index][0]
+    if text.lower().startswith('lookup '):
+        query = text.replace('lookup ', '')
+    return query
 
 
-def do_lookup(message, context, word: str):
+def do_lookup(message, context, query: str):
     """
     Performs lookup for the word in online dictionary, prepares resulting output and sends it to user as
     formatted markdown or plain text as a fallback option.
     :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
     :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
-    :param word: a word to look up.
+    :param query: a word to look up.
     :return: sent message if anything managed to get through (albeit failure note) or None in case of ultimate failure.
     """
-    logger.info(f'got a word to look up, initiating lookup for {word}')
+    logger.info(f'got a word to look up, initiating lookup for {query}')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
-                             f'looking up {word} ...'
+                             f'looking up {query} ...'
                              )
     logger.info(f'notification sent successfully to {message.from_user.full_name}' if sent else FAILURE)
     x = dlp()
-    if not x.lookup(word):
+    if not x.lookup(query):
         return send_failure_note(message, context)
     output = trim_output(x.output_markdown())
     logger.info(
