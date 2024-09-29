@@ -209,13 +209,13 @@ def send_choices(message, context, choices: str):
     return sent
 
 
-def obtain_word(message) -> str:
+def obtain_query(message) -> str:
     """
-    Checks the incoming message text to see if it is a digit - which is then used as index to get corresponding word
-    from the list of suggestions, or a lookup request in which case the word to look up
-    is extracted right from the text.
+    Checks the incoming message text to see if it is a digit - which is then used as index to get corresponding entry
+    from the list of OCR-based suggestions - or a lookup request, in which case the phrase to look up
+    is obtained right from the message text.
     :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
-    :return: a word to look up.
+    :return: the query to look up.
     """
     query = ''
     text = message.text
@@ -232,14 +232,14 @@ def obtain_word(message) -> str:
 
 def do_lookup(message, context, query: str):
     """
-    Performs lookup for the word in online dictionary, prepares resulting output and sends it to user as
+    Performs lookup for the query in online dictionary, prepares resulting output and sends it to user as
     formatted markdown or plain text as a fallback option.
     :param message: instance attribute message of telegram.update.Update extracted from the initiating update.
     :param context: instance of telegram.ext.CallbackContext containing the running Bot as a property.
-    :param query: a word to look up.
+    :param query: a text to look up.
     :return: sent message if anything managed to get through (albeit failure note) or None in case of ultimate failure.
     """
-    logger.info(f'got a word to look up, initiating lookup for {query}')
+    logger.info(f'got a text to look up, initiating lookup for {query}')
     sent = dlp.retry_or_none(context.bot.send_message, 2, 1,
                              message.from_user.id,
                              f'looking up {query} ...'
