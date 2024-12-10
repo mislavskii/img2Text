@@ -35,7 +35,7 @@ def service(update: Update, context: CallbackContext) -> None:
     message = update.message
     if message.text:
         logger.info(f'incoming text message from {message.from_user.full_name}')
-        word = obtain_word(message)
+        word = obtain_query(message)
         if word:
             do_lookup(message, context, word)
         else:
