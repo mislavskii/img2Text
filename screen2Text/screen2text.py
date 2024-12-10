@@ -236,7 +236,7 @@ class ClipImg2Text:
 
 
 class DictLookup(ClipImg2Text):
-    dic_url = 'https://dict.longdo.com/search/'
+    dic_url = 'https://dict2013.longdo.com/search/'
 
     @staticmethod
     def retry_or_none(func, attempts: int, seconds: int | float, *args, **kwargs):
