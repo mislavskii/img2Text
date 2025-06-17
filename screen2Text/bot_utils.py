@@ -2,7 +2,8 @@
 import logging
 from io import BytesIO
 import requests as rq
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton  # , ParseMode
+from telegram.constants import ParseMode
 
 from screen2text import DictLookup as dlp, tb_logger
 
